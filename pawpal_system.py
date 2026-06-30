@@ -12,7 +12,7 @@ Schedule : organises tasks, detects conflicts, shows daily view
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date as _today
+from datetime import date, datetime, timedelta
 
 
 # ──────────────────────────────────────────────
@@ -28,12 +28,17 @@ class Owner:
         self.pets: list[Pet] = []
 
     def add_pet(self, pet: Pet) -> None:
-        """Append *pet* to this owner's pet list."""
-        pass
+        """Append *pet* to this owner's pet list and wire the back-reference."""
+        pet.owner = self
+        self.pets.append(pet)
 
     def get_pets(self) -> list[Pet]:
         """Return all pets belonging to this owner."""
-        pass
+        return self.pets
+
+    def get_all_tasks(self) -> list[Task]:
+        """Return every task across all of this owner's pets."""
+        return [task for pet in self.pets for task in pet.tasks]
 
     def __str__(self) -> str:
         return f"Owner({self.name})"
@@ -51,10 +56,16 @@ class Pet:
     age: int
     species: str
     owner: Owner | None = field(default=None, repr=False)
+    tasks: list[Task] = field(default_factory=list, repr=False)
 
     def get_info(self) -> str:
         """Return a human-readable summary of this pet."""
-        pass
+        owner_name = self.owner.name if self.owner else "no owner"
+        task_count = len(self.tasks)
+        return (
+            f"{self.name} | {self.species} | age {self.age} | "
+            f"owner: {owner_name} | tasks: {task_count}"
+        )
 
     def __str__(self) -> str:
         return f"{self.name} ({self.species}, age {self.age})"
@@ -72,20 +83,27 @@ class Task:
     pet: Pet
     date: str               # "YYYY-MM-DD"
     time: str               # "HH:MM"
+    description: str = ""   # free-text detail about the activity
+    frequency: str = "once" # "once" | "daily" | "weekly" | "monthly"
+    duration: int = 30      # minutes — used for conflict detection
     status: str = "pending" # "pending" | "done"
 
     def complete(self) -> None:
         """Mark this task as done."""
-        pass
+        self.status = "done"
 
     def reschedule(self, date: str, time: str) -> None:
         """Update the task's date and time."""
-        pass
+        self.date = date
+        self.time = time
 
     def __str__(self) -> str:
+        detail = f" — {self.description}" if self.description else ""
+        display_time = datetime.strptime(self.time, "%H:%M").strftime("%I:%M %p").lstrip("0")
         return (
-            f"[{self.status.upper()}] {self.task_type} "
-            f"for {self.pet.name} on {self.date} at {self.time}"
+            f"[{self.status.upper()}] {self.task_type}{detail} "
+            f"for {self.pet.name} on {self.date} at {display_time} "
+            f"({self.frequency})"
         )
 
 
@@ -96,24 +114,46 @@ class Task:
 class Schedule:
     """Organises tasks by day, detects conflicts, and surfaces today's plan."""
 
-    def __init__(self) -> None:
+    def __init__(self, owner: Owner) -> None:
+        self.owner: Owner = owner
         self.tasks: list[Task] = []
 
     def add_task(self, task: Task) -> None:
-        """Add a task to the schedule."""
-        pass
+        """Add a task to the schedule and register it on the pet."""
+        self.tasks.append(task)
+        if task not in task.pet.tasks:
+            task.pet.tasks.append(task)
 
     def detect_conflicts(self) -> list[tuple[Task, Task]]:
-        """Return pairs of tasks that share the same date and time slot."""
-        pass
+        """Return pairs of tasks for the same pet whose time windows overlap."""
+        conflicts: list[tuple[Task, Task]] = []
+        for i, t1 in enumerate(self.tasks):
+            for t2 in self.tasks[i + 1:]:
+                if t1.pet is not t2.pet or t1.date != t2.date:
+                    continue
+                start1 = datetime.strptime(f"{t1.date} {t1.time}", "%Y-%m-%d %H:%M")
+                end1 = start1 + timedelta(minutes=t1.duration)
+                start2 = datetime.strptime(f"{t2.date} {t2.time}", "%Y-%m-%d %H:%M")
+                end2 = start2 + timedelta(minutes=t2.duration)
+                if start1 < end2 and start2 < end1:
+                    conflicts.append((t1, t2))
+        return conflicts
 
     def show_today_tasks(self) -> list[Task]:
         """Return all tasks whose date matches today."""
-        pass
+        return self.get_tasks_by_day(date.today().isoformat())
 
     def get_tasks_by_day(self, date: str) -> list[Task]:
         """Return all tasks scheduled for *date* (format 'YYYY-MM-DD')."""
-        pass
+        return [t for t in self.tasks if t.date == date]
+
+    def get_tasks_by_pet(self, pet: Pet) -> list[Task]:
+        """Return all tasks associated with a specific pet."""
+        return [t for t in self.tasks if t.pet is pet]
+
+    def get_all_owner_tasks(self) -> list[Task]:
+        """Collect every task from all of the owner's pets via their back-references."""
+        return [task for pet in self.owner.get_pets() for task in pet.tasks]
 
     def __str__(self) -> str:
-        return f"Schedule({len(self.tasks)} tasks)"
+        return f"Schedule({self.owner.name}, {len(self.tasks)} tasks)"
