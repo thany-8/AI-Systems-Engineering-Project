@@ -32,6 +32,20 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Run
+
+```bash
+# Launch the Streamlit UI (opens at http://localhost:8501):
+streamlit run app.py
+
+# …or run the command-line demo:
+python main.py
+```
+
+In the UI you save an owner, add pets, add care tasks (type, date/time, duration,
+priority, and how often they repeat), then enter how many minutes you have today
+to get a prioritized daily plan.
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
@@ -110,12 +124,12 @@ PawPal+ turns a raw task list into an ordered daily plan using a few simple algo
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Follow these steps to reproduce a full plan in the Streamlit UI:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Save the owner** — enter a name and contact, then click **Save owner**. This creates the `Owner` and an empty `Schedule` for the session.
+2. **Add a pet** — enter a name, age, and species and click **Add pet**. Repeat to add more pets (e.g., Max the dog and Luna the cat).
+3. **Add care tasks** — for each task pick the pet, type (walk/feeding/medicine/grooming), date, time, description, **frequency** (once/daily/weekly/monthly), **duration**, and **priority** (high/medium/low), then click **Add task**.
+4. **Set your time budget** — under *Smart Daily Plan*, enter how many minutes you have today (`0` = no limit).
+5. **Read the plan** — PawPal+ lists today's tasks **highest priority first, then earliest time**, marks any that **don't fit the time budget** as skipped (with the reason), flags **time conflicts** for the same pet, and offers a **"Why this plan?"** explanation. Click **Done** to complete a task and watch the plan update.
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
