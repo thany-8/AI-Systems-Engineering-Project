@@ -4,10 +4,14 @@ PawPal+ – demo script.
 
 Creates an Owner, two Pets, three Tasks, and prints Today's Schedule.
 """
+from datetime import date
+
 from pawpal_system import Owner, Pet, Task, Schedule
 
 
-TODAY = "2026-06-30"
+# Use the real current date so the tasks created below land on "today" and
+# Schedule.show_today_tasks() (which filters by date.today()) actually shows them.
+TODAY = date.today().isoformat()
 
 
 def main() -> None:
