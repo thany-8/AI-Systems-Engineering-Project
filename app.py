@@ -79,6 +79,7 @@ else:
             description = st.text_input("Description (optional)")
             frequency   = st.selectbox("Frequency", ["once", "daily", "weekly", "monthly"])
             duration    = st.number_input("Duration (min)", min_value=1, max_value=240, value=30)
+            priority    = st.selectbox("Priority", ["high", "medium", "low"], index=1)
         if st.form_submit_button("Add task"):
             task = Task(
                 task_type   = task_type,
@@ -88,6 +89,7 @@ else:
                 description = description,
                 frequency   = frequency,
                 duration    = int(duration),
+                priority    = priority,
             )
             # Schedule.add_task() appends to the schedule AND registers the task on pet.tasks
             st.session_state.schedule.add_task(task)
@@ -95,37 +97,58 @@ else:
 
 st.divider()
 
-# ── 4. Today's Schedule ───────────────────────────────────────────────────────
-st.subheader("Today's Schedule")
+# ── 4. Smart Daily Plan ───────────────────────────────────────────────────────
+st.subheader("Smart Daily Plan")
 
 if not st.session_state.schedule:
     st.info("No schedule yet — save an owner to begin.")
 else:
-    # show_today_tasks() calls get_tasks_by_day(date.today().isoformat()) internally
-    today_tasks = st.session_state.schedule.show_today_tasks()
-    if today_tasks:
-        for t in today_tasks:
+    schedule = st.session_state.schedule
+
+    # Optional time budget — 0 means "plan the whole day" (no limit).
+    budget = st.number_input(
+        "Time available today (min, 0 = no limit)",
+        min_value=0, max_value=1440, value=0, step=15,
+    )
+    available = int(budget) if budget > 0 else None
+
+    # plan_day() gathers today's (recurring-aware) tasks, sorts them by priority
+    # then time, and greedily fits them into the optional time budget.
+    plan = schedule.plan_day(available_minutes=available)
+
+    if plan.included:
+        st.caption("Planned — highest priority first, then earliest time:")
+        for t in plan.included:
             col1, col2 = st.columns([4, 1])
             with col1:
                 st.write(f"- {t}")
             with col2:
-                # task.complete() flips status to 'done'; rerun re-renders the label
+                # task.complete() flips status to 'done'; rerun re-renders the plan
                 if t.status == "pending" and st.button("Done", key=f"done_{id(t)}"):
                     t.complete()
                     st.rerun()
     else:
-        st.info("No tasks scheduled for today.")
+        st.info("No pending tasks scheduled for today.")
 
-    # detect_conflicts() checks overlapping time windows per pet
-    conflicts = st.session_state.schedule.detect_conflicts()
-    if conflicts:
-        st.warning(f"{len(conflicts)} conflict(s) detected:")
-        for a, b in conflicts:
+    # Tasks that didn't fit the time budget, with the reason why.
+    if plan.skipped:
+        st.warning(f"{len(plan.skipped)} task(s) skipped — not enough time:")
+        for t, reason in plan.skipped:
+            st.write(f"  • **{t.task_type}** for {t.pet.name}: {reason}")
+
+    # detect_conflicts() checks overlapping time windows per pet among planned tasks
+    if plan.conflicts:
+        st.error(f"{len(plan.conflicts)} conflict(s) detected:")
+        for a, b in plan.conflicts:
             st.write(f"  • **{a.task_type}** ({a.time}) overlaps **{b.task_type}** ({b.time}) for {a.pet.name}")
 
-    # Full task list via owner.get_all_tasks() — traverses all pets
+    # The scheduler explains its own reasoning (ordering, skips, conflicts).
+    with st.expander("Why this plan?"):
+        st.code(plan.explain(), language="text")
+
+    # Full task list via owner.get_all_tasks() — traverses all pets, sorted
     all_tasks = st.session_state.owner.get_all_tasks()
     if all_tasks:
         with st.expander(f"All scheduled tasks ({len(all_tasks)})"):
-            for t in all_tasks:
+            for t in schedule.sort_tasks(all_tasks):
                 st.write(f"- {t}")
