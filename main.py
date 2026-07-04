@@ -24,62 +24,53 @@ def main() -> None:
     owner.add_pet(max_)
     owner.add_pet(luna)
 
-    # ── 3. Three Tasks with different times ───
+    # ── 3. Tasks with priorities, durations, and recurrence ───
     schedule = Schedule(owner)
 
-    t1 = Task(
-        task_type="walk",
-        pet=max_,
-        date=TODAY,
-        time="08:00",
+    schedule.add_task(Task(
+        task_type="walk", pet=max_, date=TODAY, time="08:00",
         description="Morning walk around the park",
-        frequency="daily",
-        duration=30,
-    )
-    t2 = Task(
-        task_type="feeding",
-        pet=max_,
-        date=TODAY,
-        time="12:00",
+        frequency="daily", duration=30, priority="low",
+    ))
+    schedule.add_task(Task(
+        task_type="feeding", pet=max_, date=TODAY, time="12:00",
         description="Dry kibble — one cup",
-        frequency="daily",
-        duration=10,
-    )
-    t3 = Task(
-        task_type="medicine",
-        pet=luna,
-        date=TODAY,
-        time="09:30",
+        frequency="daily", duration=10, priority="medium",
+    ))
+    schedule.add_task(Task(
+        task_type="grooming", pet=max_, date=TODAY, time="12:05",
+        description="Quick brush-down",
+        frequency="weekly", duration=20, priority="high",
+    ))
+    schedule.add_task(Task(
+        task_type="medicine", pet=luna, date=TODAY, time="09:30",
         description="Flea treatment drops",
-        frequency="monthly",
-        duration=5,
-    )
+        frequency="monthly", duration=5, priority="high",
+    ))
 
-    schedule.add_task(t1)
-    schedule.add_task(t2)
-    schedule.add_task(t3)
-
-    # ── 4. Print Today's Schedule ─────────────
-    print(f"\n{'=' * 40}")
+    # ── 4. Header + today's tasks (sorted by priority, then time) ───
+    print(f"\n{'=' * 52}")
     print(f"  PawPal+ — Today's Schedule ({TODAY})")
     print(f"  Owner : {owner.name}  |  {owner.contact}")
     print(f"  Pets  : {', '.join(str(p) for p in owner.get_pets())}")
-    print(f"{'=' * 40}")
+    print(f"{'=' * 52}")
 
-    today_tasks = schedule.show_today_tasks()
+    today_tasks = schedule.sort_tasks(schedule.show_today_tasks())
     if today_tasks:
         for task in today_tasks:
             print(f"  {task}")
     else:
         print("  No tasks scheduled for today.")
 
-    conflicts = schedule.detect_conflicts()
-    if conflicts:
-        print(f"\n  ⚠ Conflicts detected:")
-        for a, b in conflicts:
-            print(f"    • {a.task_type} ({a.time}) overlaps with {b.task_type} ({b.time}) for {a.pet.name}")
+    # ── 5. Smart plan within a limited time budget ───
+    available_minutes = 40
+    print(f"\n{'-' * 52}")
+    print(f"  Smart plan for a {available_minutes}-minute window")
+    print(f"{'-' * 52}")
+    plan = schedule.plan_day(available_minutes=available_minutes)
+    print(plan.explain())
 
-    print(f"{'=' * 40}\n")
+    print(f"{'=' * 52}\n")
 
 
 if __name__ == "__main__":
