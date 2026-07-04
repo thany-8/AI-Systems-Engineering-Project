@@ -47,15 +47,28 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-========================================
-  PawPal+ — Today's Schedule (2026-06-30)
+====================================================
+  PawPal+ — Today's Schedule (2026-07-03)
   Owner : Alice  |  alice@example.com
   Pets  : Max (dog, age 4), Luna (cat, age 2)
-========================================
-  [PENDING] walk — Morning walk around the park for Max on 2026-06-30 at 8:00 AM (daily)
-  [PENDING] feeding — Dry kibble — one cup for Max on 2026-06-30 at 12:00 PM (daily)
-  [PENDING] medicine — Flea treatment drops for Luna on 2026-06-30 at 9:30 AM (monthly)
-========================================
+====================================================
+  [PENDING] (high priority) medicine — Flea treatment drops for Luna on 2026-07-03 at 9:30 AM (monthly)
+  [PENDING] (high priority) grooming — Quick brush-down for Max on 2026-07-03 at 12:05 PM (weekly)
+  [PENDING] (medium priority) feeding — Dry kibble — one cup for Max on 2026-07-03 at 12:00 PM (daily)
+  [PENDING] (low priority) walk — Morning walk around the park for Max on 2026-07-03 at 8:00 AM (daily)
+
+----------------------------------------------------
+  Smart plan for a 40-minute window
+----------------------------------------------------
+Plan for 2026-07-03:
+  Time budget: 40 min | Scheduled: 35 min
+  Order (highest priority first, then earliest time):
+    1. 09:30 — medicine for Luna (high priority, 5 min)
+    2. 12:05 — grooming for Max (high priority, 20 min)
+    3. 12:00 — feeding for Max (medium priority, 10 min)
+  Skipped walk for Max: needs 30 min but only 5 min left
+  ⚠ Conflict: grooming (12:05) overlaps feeding (12:00) for Max
+====================================================
 ```
 
 ## 🧪 Testing PawPal+
@@ -71,19 +84,29 @@ pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
+
+======================= test session starts =======================
+platform darwin -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/thany/Documents/Development/AI_Engeneer Project #2
+plugins: anyio-4.14.1
+collected 10 items                                                
+
+tests/test_pawpal.py ..........                             [100%]
+
+======================== 10 passed in 0.01s =======================
 ```
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+PawPal+ turns a raw task list into an ordered daily plan using a few simple algorithms:
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Schedule.sort_tasks` | Sorts by priority (high → low), then earliest start time. |
+| Filtering | `Schedule.filter_tasks`, `Schedule.plan_day` | `filter_tasks` narrows by status/type/pet; `plan_day` greedily fits tasks into an available-minutes budget and skips the rest. |
+| Conflict handling | `Schedule.detect_conflicts` | Flags overlapping time windows for the same pet (start/duration overlap). |
+| Recurring tasks | `Task.occurs_on`, `Schedule.get_tasks_by_day` | `once` / `daily` / `weekly` (every 7 days) / `monthly` (same day-of-month), measured from the task's start date. |
+| Plan reasoning | `Schedule.plan_day` → `DailyPlan.explain` | Returns the chosen order, skipped tasks (with reasons), conflicts, and total scheduled minutes. |
 
 ## 📸 Demo Walkthrough
 
