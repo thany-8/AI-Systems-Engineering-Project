@@ -80,8 +80,7 @@ Before answering, the recommender **retrieves information from a source**: the e
 catalog derived from
 [`module3-music-recommender/data/songs.csv`](module3-music-recommender/data/songs.csv). The
 original Module 3 project is preserved in
-[`module3-music-recommender/`](module3-music-recommender/) (and the earlier Module 2 project in
-[`module2-pawpal/`](module2-pawpal/)) with full commit history.
+[`module3-music-recommender/`](module3-music-recommender/) with full commit history.
 
 ## Repository layout
 
@@ -100,7 +99,6 @@ original Module 3 project is preserved in
 ├── diagrams/architecture.mmd   # Mermaid source of truth
 ├── assets/architecture.png     # exported diagram
 ├── module3-music-recommender/  # Module 3 — base recommender + dataset (full history)
-├── module2-pawpal/             # Module 2 — earlier project (full history)
 ├── requirements.txt
 └── run.py
 ```
