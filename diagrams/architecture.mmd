@@ -1,30 +1,45 @@
-%% Applied AI System — Architecture
-%% Source of truth (Mermaid). Export PNGs to ../assets/ for the README.
-%% NOTE: initial draft — refine as the combined system evolves.
+%% Applied AI System — PawPal+ Companion
+%% Source of truth (Mermaid). Export a PNG to ../assets/ for the README if desired.
+%% Advanced AI feature: an Agentic Workflow (plan → act → check → compose)
+%% that routes between two Module engines and checks its own work.
 
 flowchart TD
-    User([User]) --> UI[Application / UI Layer<br/>Streamlit + CLI]
+    User([Pet owner]) -->|types a request| UI["Browser chat UI<br/>HTML · CSS · JS"]
+    UI <-->|POST /api/chat| API["Flask backend<br/>app/server.py"]
 
-    subgraph PawPal["module2-pawpal · PawPal+ Scheduling Subsystem"]
+    API --> Plan
+
+    subgraph Agent["Agentic loop · app/agent.py"]
         direction TB
-        P1[Owner / Pet / Task Models]
-        P2[Schedule Engine<br/>priority · time-budget · conflicts]
-        P3[DailyPlan + Explanations]
-        P1 --> P2 --> P3
+        Plan["① Plan — choose tools"]
+        Act["② Act — run tools"]
+        Check{"③ Check — good enough?"}
+        Compose["④ Compose — grounded reply"]
+        Plan --> Act --> Check
+        Check -- "revise: add tools" --> Act
+        Check -- "satisfied" --> Compose
     end
 
-    subgraph Music["module3-music-recommender · Recommender Subsystem"]
-        direction TB
-        M1[(Song Catalog CSV)]
-        M2[User Taste Profile]
-        M3[Content-Based Scoring<br/>weighted feature similarity]
-        M4[Ranked Recommendations + Reasons]
-        M1 --> M3
-        M2 --> M3 --> M4
+    Plan -. plan .-> Planner
+    Compose -. compose .-> Planner
+    subgraph Planner["Reasoning · app/llm.py"]
+        Gemini["Google Gemini<br/>(free tier)"]
+        Offline["Deterministic<br/>offline fallback"]
     end
 
-    UI --> PawPal
-    UI --> Music
-    P3 --> Out[[Explainable Output]]
-    M4 --> Out
-    Out --> User
+    Act --> ToolsBox
+    subgraph ToolsBox["Tools · app/tools.py"]
+        direction TB
+        PlanTool["plan_pet_day<br/>list_pets_and_tasks"]
+        MusicTool["recommend_music"]
+    end
+    PlanTool --> PawPal["PawPal+ scheduler<br/>module2-pawpal"]
+    MusicTool --> Rec["Music recommender<br/>module3-music-recommender"]
+    Rec --> CSV[("songs.csv")]
+
+    Guard[["Guardrails<br/>input · tool args · grounding"]]
+    Logs[("Structured logs<br/>app/logs/agent.log")]
+    Agent --- Guard
+    Agent --- Logs
+
+    Compose --> API
