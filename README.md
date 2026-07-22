@@ -7,17 +7,19 @@ Module 3 recommender into an applied AI system with two advanced features.
 
 ![Architecture](assets/architecture.png)
 
-> Generation uses **Google Gemini** (free tier) when a key is set, and a **deterministic
-> offline template** otherwise — so the app always runs and is fully testable without a key.
-> Retrieval and the vibe model are 100% local.
+> Generation **and semantic retrieval** use **Google Gemini** (free tier) when a key is set.
+> Without a key the app uses a **deterministic offline template** for generation and a local
+> **TF-IDF** retriever — so it always runs and is fully testable. The vibe model is always local.
 
 ## Two advanced AI features
 
 **1. Retrieval-Augmented Generation (RAG).** Structured songs from `songs.csv` are turned into
-natural-language description documents ([`app/corpus.py`](app/corpus.py)). A TF-IDF index
-([`app/retriever.py`](app/retriever.py)) retrieves the songs most relevant to your request, and
-the generator answers **using only those retrieved songs** — the retrieved data drives the
-response, and invented titles are rejected by a grounding guardrail.
+natural-language description documents ([`app/corpus.py`](app/corpus.py)). A retriever
+([`app/retriever.py`](app/retriever.py)) finds the songs most relevant to your request — using
+**semantic Gemini embeddings** ([`app/embeddings.py`](app/embeddings.py)) when a key is set, and
+a local **TF-IDF** index otherwise — and the generator answers **using only those retrieved
+songs**: the retrieved data drives the response, and invented titles are rejected by a grounding
+guardrail. Document embeddings are computed once and cached to `app/models/`.
 
 **2. Specialized / trained model.** A scikit-learn classifier
 ([`app/vibe_model.py`](app/vibe_model.py)) is trained on the catalog's audio features (energy,
@@ -88,7 +90,8 @@ original Module 3 project is preserved in
 .
 ├── app/                        # the Music RAG Recommender
 │   ├── corpus.py               # enriched song documents (RAG source)
-│   ├── retriever.py            # TF-IDF retrieval (RAG: Retrieve)
+│   ├── retriever.py            # retrieval (RAG: Retrieve) — embeddings or TF-IDF
+│   ├── embeddings.py           # Gemini embeddings client (semantic search)
 │   ├── vibe_model.py           # trained scikit-learn vibe classifier
 │   ├── generator.py            # grounded generation (Gemini + offline)
 │   ├── pipeline.py             # retrieve → re-rank → generate → verify

@@ -12,7 +12,7 @@ flowchart TD
 
     subgraph Pipe["RAG pipeline · app/pipeline.py"]
         direction TB
-        R["① Retrieve — TF-IDF over enriched docs"]
+        R["① Retrieve — semantic embeddings (Gemini)<br/>or TF-IDF fallback"]
         K["② Re-rank — trained vibe model"]
         G["③ Generate — grounded answer"]
         V["④ Verify — grounding guardrail"]

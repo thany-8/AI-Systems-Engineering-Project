@@ -35,6 +35,24 @@ def test_retriever_is_relevant():
     assert "Someone Like You" in [h["title"] for h in sad]
 
 
+def test_retriever_defaults_to_tfidf_offline():
+    # With no GEMINI_API_KEY, retrieval falls back to the local TF-IDF backend.
+    assert retriever.build_retriever().name == "tfidf"
+
+
+def test_embedding_retriever_ranks_by_cosine():
+    import numpy as np
+
+    docs = [{"title": "A", "text": "a"}, {"title": "B", "text": "b"}, {"title": "C", "text": "c"}]
+    matrix = retriever._normalize_rows(np.array([[1, 0], [0, 1], [0.7, 0.7]], dtype="float32"))
+    er = retriever.EmbeddingRetriever(docs, matrix, lambda q: np.array([1, 0], dtype="float32"))
+
+    res = er.retrieve("anything", k=2)
+    assert er.name == "embedding"
+    assert res[0]["title"] == "A"           # most aligned with the query vector
+    assert "retrieval_score" in res[0]
+
+
 # ── Specialized model ──────────────────────────────────────────────────────
 def test_vibe_model_trains_predicts_and_evaluates():
     model = vibe_model.get_model()
