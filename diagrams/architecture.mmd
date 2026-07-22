@@ -1,0 +1,30 @@
+%% Applied AI System — Architecture
+%% Source of truth (Mermaid). Export PNGs to ../assets/ for the README.
+%% NOTE: initial draft — refine as the combined system evolves.
+
+flowchart TD
+    User([User]) --> UI[Application / UI Layer<br/>Streamlit + CLI]
+
+    subgraph PawPal["module2-pawpal · PawPal+ Scheduling Subsystem"]
+        direction TB
+        P1[Owner / Pet / Task Models]
+        P2[Schedule Engine<br/>priority · time-budget · conflicts]
+        P3[DailyPlan + Explanations]
+        P1 --> P2 --> P3
+    end
+
+    subgraph Music["module3-music-recommender · Recommender Subsystem"]
+        direction TB
+        M1[(Song Catalog CSV)]
+        M2[User Taste Profile]
+        M3[Content-Based Scoring<br/>weighted feature similarity]
+        M4[Ranked Recommendations + Reasons]
+        M1 --> M3
+        M2 --> M3 --> M4
+    end
+
+    UI --> PawPal
+    UI --> Music
+    P3 --> Out[[Explainable Output]]
+    M4 --> Out
+    Out --> User
