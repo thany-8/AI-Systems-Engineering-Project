@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="An agentic AI assistant that plans your pets' care day and recommends music." />
+  <title>PawPal+ Companion</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#message">Skip to message input</a>
+
+  <div class="app">
+    <header class="app__header">
+      <div class="brand">
+        <span class="brand__logo" aria-hidden="true">🐾🎵</span>
+        <div class="brand__text">
+          <h1 class="brand__title">PawPal+ Companion</h1>
+          <p class="brand__tag">One agent, two engines — plan your pets' day &amp; find the right music.</p>
+        </div>
+      </div>
+      <span id="mode-badge" class="badge badge--loading" title="Reasoning mode" aria-live="polite">checking…</span>
+    </header>
+
+    <main class="chat">
+      <ol id="messages" class="messages" aria-live="polite" aria-label="Conversation"></ol>
+    </main>
+
+    <div class="suggestions" aria-label="Example prompts">
+      <button type="button" class="chip">Plan my day, I have 45 minutes</button>
+      <button type="button" class="chip">Calm songs for grooming</button>
+      <button type="button" class="chip">Plan Luna's day and pick music for it</button>
+      <button type="button" class="chip">Suggest some reggaeton</button>
+    </div>
+
+    <form id="composer" class="composer" autocomplete="off">
+      <label class="sr-only" for="message">Your message</label>
+      <textarea id="message" name="message" rows="1"
+                placeholder="Ask me to plan your pets' day or suggest music…"
+                required></textarea>
+      <button id="send" type="submit" class="send">Send</button>
+    </form>
+  </div>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
