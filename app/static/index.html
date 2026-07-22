@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="An agentic AI assistant that plans your pets' care day and recommends music." />
-  <title>PawPal+ Companion</title>
+  <meta name="description" content="A music recommender that retrieves songs (RAG) and re-ranks them with a trained vibe model." />
+  <title>Music RAG Recommender</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -13,10 +13,10 @@
   <div class="app">
     <header class="app__header">
       <div class="brand">
-        <span class="brand__logo" aria-hidden="true">🐾🎵</span>
+        <span class="brand__logo" aria-hidden="true">🎵🤖</span>
         <div class="brand__text">
-          <h1 class="brand__title">PawPal+ Companion</h1>
-          <p class="brand__tag">One agent, two engines — plan your pets' day &amp; find the right music.</p>
+          <h1 class="brand__title">Music RAG Recommender</h1>
+          <p class="brand__tag">Retrieves songs from a catalog, re-ranks them with a trained vibe model, and explains the picks.</p>
         </div>
       </div>
       <span id="mode-badge" class="badge badge--loading" title="Reasoning mode" aria-live="polite">checking…</span>
@@ -27,18 +27,18 @@
     </main>
 
     <div class="suggestions" aria-label="Example prompts">
-      <button type="button" class="chip">Plan my day, I have 45 minutes</button>
-      <button type="button" class="chip">Calm songs for grooming</button>
-      <button type="button" class="chip">Plan Luna's day and pick music for it</button>
-      <button type="button" class="chip">Suggest some reggaeton</button>
+      <button type="button" class="chip">Calm music for studying</button>
+      <button type="button" class="chip">High-energy workout songs</button>
+      <button type="button" class="chip">Sad songs for a rainy day</button>
+      <button type="button" class="chip">Latin party music</button>
     </div>
 
     <form id="composer" class="composer" autocomplete="off">
-      <label class="sr-only" for="message">Your message</label>
+      <label class="sr-only" for="message">Describe what you want to hear</label>
       <textarea id="message" name="message" rows="1"
-                placeholder="Ask me to plan your pets' day or suggest music…"
+                placeholder="Describe a mood, activity, or genre… e.g. “upbeat pop for a road trip”"
                 required></textarea>
-      <button id="send" type="submit" class="send">Send</button>
+      <button id="send" type="submit" class="send">Recommend</button>
     </form>
   </div>
 

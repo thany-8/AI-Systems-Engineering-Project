@@ -1,15 +1,14 @@
-"""Flask backend for PawPal+ Companion.
+"""Flask backend for the Music RAG Recommender.
 
-Serves the static chat UI and exposes the agent over a small JSON API:
-* ``GET  /``            → the chat page
-* ``GET  /api/health``  → reasoning mode (gemini/offline)
-* ``POST /api/chat``    → run one agent turn: {"message": "..."}
+* ``GET  /``             → the chat UI
+* ``GET  /api/health``   → reasoning mode (gemini/offline)
+* ``POST /api/recommend``→ run the RAG pipeline: {"query": "..."}
 """
 from __future__ import annotations
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from app import agent, config, guardrails
+from app import config, guardrails, pipeline
 
 
 def create_app() -> Flask:
@@ -29,15 +28,15 @@ def create_app() -> Flask:
             }
         )
 
-    @app.post("/api/chat")
-    def chat():
+    @app.post("/api/recommend")
+    def recommend():
         data = request.get_json(silent=True) or {}
         try:
-            result = agent.run(data.get("message", ""))
+            result = pipeline.recommend(data.get("query", ""))
         except guardrails.GuardrailError as exc:
             return jsonify({"error": str(exc)}), 400
         except Exception:  # pragma: no cover - defensive
-            app.logger.exception("chat request failed")
+            app.logger.exception("recommend request failed")
             return jsonify({"error": "internal error"}), 500
         return jsonify(result)
 

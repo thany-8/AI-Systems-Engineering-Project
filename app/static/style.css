@@ -100,6 +100,20 @@ html, body {
 .trace__step--revise { color: var(--warn); }
 .trace__step--fail { color: var(--danger); }
 
+/* Retrieved song cards */
+.songs { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.songs__title { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.song { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
+.song__title { font-weight: 600; }
+.song__artist { color: var(--muted); }
+.song__tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.song__meta { font-size: .74rem; color: var(--muted); }
+.vibe { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: capitalize; border: 1px solid var(--border); }
+.vibe--calm { color: #0b6b57; background: color-mix(in srgb, #0b6b57 12%, white); }
+.vibe--upbeat { color: #9a4d00; background: color-mix(in srgb, #9a4d00 12%, white); }
+.vibe--intense { color: #b42318; background: color-mix(in srgb, #b42318 12%, white); }
+.vibe--melancholy { color: #3b5bdb; background: color-mix(in srgb, #3b5bdb 12%, white); }
+
 /* Typing indicator */
 .dots span { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite ease-in-out both; }
 .dots span:nth-child(2) { animation-delay: .2s; }

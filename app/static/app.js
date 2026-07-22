@@ -6,7 +6,6 @@ const input = document.getElementById("message");
 const sendBtn = document.getElementById("send");
 const badge = document.getElementById("mode-badge");
 
-/** Create an element with optional class and text. */
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -14,7 +13,6 @@ function el(tag, className, text) {
   return node;
 }
 
-/** Render multi-line text safely (no HTML injection). */
 function multiline(parent, text) {
   const lines = String(text).split("\n");
   lines.forEach((line, i) => {
@@ -28,7 +26,6 @@ function scrollToBottom() {
   chat.scrollTop = chat.scrollHeight;
 }
 
-/** Add a message bubble. Returns the <li> so it can be updated later. */
 function addMessage(role, text) {
   const li = el("li", `msg msg--${role}`);
   const bubble = el("div", "bubble");
@@ -39,7 +36,6 @@ function addMessage(role, text) {
   return li;
 }
 
-/** Show an animated typing indicator; returns the <li>. */
 function addThinking() {
   const li = addMessage("assistant", null);
   const dots = el("span", "dots");
@@ -49,32 +45,41 @@ function addThinking() {
   return li;
 }
 
-/** Build the collapsible agent-trace panel from the trace array. */
+/** Render the retrieved-and-ranked songs as compact cards. */
+function renderResults(results) {
+  const wrap = el("div", "songs");
+  wrap.appendChild(el("div", "songs__title", "Retrieved & ranked"));
+  results.forEach((s) => {
+    const card = el("div", "song");
+    const main = el("div", "song__main");
+    main.appendChild(el("span", "song__title", s.title));
+    main.appendChild(el("span", "song__artist", ` — ${s.artist}`));
+    card.appendChild(main);
+
+    const tags = el("div", "song__tags");
+    tags.appendChild(el("span", `vibe vibe--${s.vibe}`, s.vibe));
+    tags.appendChild(el("span", "song__meta", `${s.mood} · ${s.genre}`));
+    tags.appendChild(el("span", "song__meta", `match ${Number(s.final_score).toFixed(2)}`));
+    card.appendChild(tags);
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+
+/** Build the collapsible RAG-trace panel. */
 function renderTrace(trace, meta) {
   const details = el("details", "trace");
-  const summary = el("summary", null, "Agent steps");
-  details.appendChild(summary);
+  details.appendChild(el("summary", null, "How this was built (RAG steps)"));
   const list = el("ol", "trace__list");
 
   trace.forEach((step) => {
-    let cls = "trace__step";
     let line = "";
-    if (step.step === "plan") {
-      line = step.final
-        ? "🧠 plan → direct reply"
-        : `🧠 plan → tools: ${(step.tool_calls || []).join(", ") || "none"}`;
-    } else if (step.step === "act") {
-      const args = step.args && Object.keys(step.args).length
-        ? JSON.stringify(step.args) : "{}";
-      line = `${step.ok ? "⚙️" : "⛔"} act → ${step.tool}(${args})`;
-      if (step.error) { line += ` — ${step.error}`; cls += " trace__step--fail"; }
-    } else if (step.step === "check") {
-      if (step.ok) {
-        line = `✅ check → ${step.reason}`;
-      } else {
-        line = `🔁 check → revise: ${step.reason} (add: ${(step.add || []).join(", ")})`;
-        cls += " trace__step--revise";
-      }
+    let cls = "trace__step";
+    if (step.step === "retrieve") {
+      const titles = (step.hits || []).map((h) => h.title).join(", ");
+      line = `🔎 retrieve (top ${step.k}) → ${titles || "no matches"}`;
+    } else if (step.step === "rank") {
+      line = `🎚️ re-rank → desired vibe: ${step.desired_vibe} (${step.source})`;
     } else if (step.step === "guardrail") {
       line = step.grounded
         ? "🛡️ grounding → passed"
@@ -97,10 +102,10 @@ async function sendMessage(text) {
   const thinking = addThinking();
 
   try {
-    const resp = await fetch("/api/chat", {
+    const resp = await fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ query: text }),
     });
     const data = await resp.json();
     thinking.remove();
@@ -110,9 +115,13 @@ async function sendMessage(text) {
       return;
     }
     const li = addMessage("assistant", data.answer);
+    const bubble = li.querySelector(".bubble");
+    if (data.results && data.results.length) {
+      bubble.appendChild(renderResults(data.results));
+    }
     const meta = `mode: ${data.mode} · ${data.elapsed_ms} ms`;
     if (data.trace && data.trace.length) {
-      li.querySelector(".bubble").appendChild(renderTrace(data.trace, meta));
+      bubble.appendChild(renderTrace(data.trace, meta));
     }
     scrollToBottom();
   } catch (err) {
@@ -149,18 +158,17 @@ document.querySelectorAll(".chip").forEach((chip) => {
   });
 });
 
-/** Fetch reasoning mode for the badge. */
 (async function initBadge() {
   try {
     const data = await (await fetch("/api/health")).json();
     if (data.mode === "gemini") {
       badge.textContent = `Gemini · ${data.model || "on"}`;
       badge.className = "badge badge--gemini";
-      badge.title = "Using Google Gemini for reasoning";
+      badge.title = "Using Google Gemini to generate the recommendation";
     } else {
       badge.textContent = "Offline mode";
       badge.className = "badge badge--offline";
-      badge.title = "No GEMINI_API_KEY set — using the deterministic planner";
+      badge.title = "No GEMINI_API_KEY set — using the deterministic generator";
     }
   } catch {
     badge.textContent = "offline";
@@ -170,6 +178,6 @@ document.querySelectorAll(".chip").forEach((chip) => {
 
 addMessage(
   "assistant",
-  "Hi! I'm PawPal+ Companion. I can plan your pets' care day and recommend music — try a suggestion below or ask me both at once."
+  "Hi! Tell me a mood, activity, or genre and I'll retrieve matching songs, re-rank them with a trained vibe model, and explain the picks. Try a suggestion below."
 );
 input.focus();
