@@ -17,3 +17,6 @@ env/
 # Secrets and runtime logs
 .env
 app/logs/*.log
+
+# Trained model artifacts (regenerated on first run)
+app/models/*.joblib
