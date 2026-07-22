@@ -8,7 +8,28 @@
 const form = document.getElementById("composer");
 const promptEl = document.getElementById("prompt");
 const createBtn = document.getElementById("create");
-const resultEl = document.getElementById("result");
+
+// The playlist renders into #result. If the markup is ever missing it (e.g.
+// the section was removed from index.html), create it so generation still
+// works instead of throwing "Cannot set properties of null".
+const resultEl = ensureResultContainer();
+
+function ensureResultContainer() {
+  let el = document.getElementById("result");
+  if (el) return el;
+  el = document.createElement("section");
+  el.id = "result";
+  el.className = "result";
+  el.hidden = true;
+  el.setAttribute("aria-live", "polite");
+  const generator = document.querySelector(".generator");
+  if (generator && generator.parentNode) {
+    generator.parentNode.insertBefore(el, generator.nextSibling);
+  } else {
+    (document.querySelector("main") || document.body).appendChild(el);
+  }
+  return el;
+}
 
 const VIBE_ART = { calm: "🌙", upbeat: "☀️", intense: "🔥", melancholy: "🌧️" };
 let lastResult = null;
