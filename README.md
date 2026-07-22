@@ -1,18 +1,21 @@
-# Music RAG Recommender
+# AI Playlist Generator
 
-Describe a mood, activity, or genre in plain language and this app recommends songs and explains
-why. It **retrieves** matching songs from a local catalog (**RAG**), **re-ranks** them with a
-**trained scikit-learn "vibe" model**, and **generates** a grounded explanation — using **Google
-Gemini** (free tier) when a key is set, or a fully local **offline** mode otherwise.
+**Create the perfect playlist in seconds.** Describe a mood, activity, or genre in plain language
+and this app builds a ranked playlist and explains every pick. It **retrieves** matching songs from
+a local catalog (**RAG**), **re-ranks** them with a **trained scikit-learn "vibe" model**, and
+**generates** a grounded explanation — using **Google Gemini** (free tier) when a key is set, or a
+fully local **offline** mode otherwise. Create a free account to **save** playlists and revisit them
+anytime.
 
 ## Architecture overview
 
 ![Architecture](assets/architecture.png)
 
-A **Flask** app serves an HTML chat UI and runs a four-stage **RAG pipeline**: **retrieve**
-relevant songs (semantic Gemini embeddings, or local TF-IDF), **re-rank** them with the trained
-vibe classifier, **generate** a grounded answer (Gemini or an offline template), and **verify**
-it. A component + testing view is in
+A **Flask** app serves a modern web UI (landing page, account pages, and a saved-playlist library)
+and runs a four-stage **RAG pipeline**: **retrieve** relevant songs (semantic Gemini embeddings, or
+local TF-IDF), **re-rank** them with the trained vibe classifier, **generate** a grounded answer
+(Gemini or an offline template), and **verify** it. User accounts (email + password via Flask-Login)
+and saved playlists persist in a local **SQLite** database. A component + testing view is in
 [`diagrams/system-overview.mmd`](diagrams/system-overview.mmd).
 
 ## Setup
@@ -21,9 +24,25 @@ it. A component + testing view is in
 python3 -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env                 # optional: add a free GEMINI_API_KEY; skip to run offline
+cp .env.example .env                 # optional: add a free GEMINI_API_KEY and a SECRET_KEY; skip to run offline
 python run.py                        # → http://127.0.0.1:5000
 ```
+
+Open the site, create an account, and start saving playlists — the first run creates a local
+`app/app.sqlite` database automatically (it's gitignored).
+
+## Web app & accounts
+
+Pages: `/` (generate playlists), `/signup` and `/login` (email + password), and `/library` (your
+saved playlists).
+
+| Method & path | Purpose |
+| --- | --- |
+| `POST /api/recommend` | Run the RAG pipeline for a prompt |
+| `POST /api/auth/signup` · `login` · `logout`, `GET /api/auth/me` | Manage the account session |
+| `GET` / `POST /api/playlists`, `DELETE /api/playlists/<id>` | List, save, and delete your playlists |
+
+Passwords are stored only as salted Werkzeug hashes, and login sessions are signed with `SECRET_KEY`.
 
 ## Sample interaction
 
@@ -51,7 +70,8 @@ python run.py                        # → http://127.0.0.1:5000
 
 `pytest` runs deterministically offline and covers retrieval relevance, the vibe model (training,
 prediction, cross-validation ≈ 0.70), the embedding retriever, re-rank integration, output
-grounding, and the HTTP API. At runtime, the grounding guardrail additionally checks every
+grounding, the HTTP API, and the account + saved-playlist flows (signup/login, password hashing,
+and per-user playlist isolation). At runtime, the grounding guardrail additionally checks every
 generated answer for hallucinated songs before it reaches the user.
 
 ## Reflection
