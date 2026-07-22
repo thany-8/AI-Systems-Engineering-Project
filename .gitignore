@@ -13,3 +13,7 @@ env/
 # OS / editor
 .DS_Store
 *.swp
+
+# Secrets and runtime logs
+.env
+app/logs/*.log

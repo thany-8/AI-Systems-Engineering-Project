@@ -1,0 +1,5 @@
+# PawPal+ Companion — combined agentic app
+flask>=3.0
+python-dotenv>=1.0
+google-generativeai>=0.8   # optional at runtime: only needed for Gemini mode
+pytest>=7.0                # tests only
