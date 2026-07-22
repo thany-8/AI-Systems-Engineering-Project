@@ -43,7 +43,7 @@ def _contexts(song: dict[str, Any]) -> str:
     if song["energy"] < 0.45 and song["valence"] >= 0.45:
         tags += ["studying", "focus", "relaxing", "reading"]
     if song["energy"] >= 0.75 and song["danceability"] >= 0.7:
-        tags += ["working out", "party", "dancing"]
+        tags += ["working out", "workout", "gym", "party", "dancing"]
     if song["valence"] < 0.4:
         tags += ["a rainy day", "reflecting"]
     if song["acousticness"] >= 0.6:
