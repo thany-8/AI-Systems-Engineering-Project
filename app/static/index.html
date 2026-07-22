@@ -3,45 +3,126 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="A music recommender that retrieves songs (RAG) and re-ranks them with a trained vibe model." />
-  <title>Music RAG Recommender</title>
+  <meta name="description" content="Create the perfect playlist in seconds. Describe a mood, activity, or genre and our AI retrieves, ranks, and explains songs that match your vibe." />
+  <title>AI Playlist Generator — Create the perfect playlist in seconds</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <a class="skip-link" href="#message">Skip to message input</a>
+  <a class="skip-link" href="#prompt">Skip to playlist maker</a>
 
-  <div class="app">
-    <header class="app__header">
-      <div class="brand">
-        <span class="brand__logo" aria-hidden="true">🎵🤖</span>
-        <div class="brand__text">
-          <h1 class="brand__title">VibeFlow Music Recommender</h1>
-          <p class="brand__tag">Finds songs that match a user’s taste, ranks them with a custom scoring model, and explains why each song was recommended.</p>
+  <header class="nav">
+    <a class="brand" href="/">
+      <span class="brand__icon" aria-hidden="true">✦</span>
+      <span class="brand__meta">
+        <span class="brand__name">AI Playlist Generator <span class="badge-beta">BETA</span></span>
+        <span class="brand__by">By VibeFlow</span>
+      </span>
+    </a>
+    <nav class="nav__right" aria-label="Primary">
+      <div class="dropdown nav__links-hide" data-static>
+        <button class="nav__link" type="button" aria-haspopup="true" aria-expanded="false">Quick actions ▾</button>
+        <div class="dropdown__menu">
+          <a href="/?q=High-energy%20workout%20songs"><span class="emoji">🏋️</span> Workout energy</a>
+          <a href="/?q=Calm%20music%20for%20studying"><span class="emoji">📚</span> Study focus</a>
+          <a href="/?q=Sad%20songs%20for%20a%20rainy%20day"><span class="emoji">🌧️</span> Rainy day</a>
+          <a href="/?q=Latin%20party%20music"><span class="emoji">🎉</span> Latin party</a>
+          <a href="/?q=Upbeat%20pop%20for%20a%20road%20trip"><span class="emoji">🚗</span> Road trip</a>
         </div>
       </div>
-      <span id="mode-badge" class="badge badge--loading" title="Reasoning mode" aria-live="polite">checking…</span>
-    </header>
+      <a class="nav__link nav__links-hide" href="#plans">Plans</a>
+      <a class="nav__link nav__links-hide" href="#how">Help</a>
+      <span id="auth-slot" class="auth-slot"></span>
+    </nav>
+  </header>
 
-    <main class="chat">
-      <ol id="messages" class="messages" aria-live="polite" aria-label="Conversation"></ol>
-    </main>
+  <main class="wrap">
+    <section class="hero">
+      <h1 class="hero__title">Create the perfect playlist in seconds</h1>
+      <p class="hero__sub">Our advanced playlist maker gives you full creative control, and turns your thoughts into a perfect playlist.</p>
+    </section>
 
-    <div class="suggestions" aria-label="Example prompts">
-      <button type="button" class="chip">Calm music for studying</button>
-      <button type="button" class="chip">High-energy workout songs</button>
-      <button type="button" class="chip">Sad songs for a rainy day</button>
-      <button type="button" class="chip">Latin party music</button>
-    </div>
+    <section class="generator" aria-label="Playlist maker">
+      <form id="composer" class="composer" autocomplete="off">
+        <div class="composer__row">
+          <span class="composer__spark" aria-hidden="true">✦</span>
+          <label class="sr-only" for="prompt">What music are you looking for?</label>
+          <textarea id="prompt" name="prompt" rows="1" placeholder="What music are you looking for?" required></textarea>
+        </div>
+        <div class="composer__actions">
+          <span class="composer__hint">Try a mood, activity, or genre — e.g. “upbeat pop for a road trip”.</span>
+          <button id="create" type="submit" class="btn btn--primary">Create Playlist</button>
+        </div>
+      </form>
 
-    <form id="composer" class="composer" autocomplete="off">
-      <label class="sr-only" for="message">Describe what you want to hear</label>
-      <textarea id="message" name="message" rows="1"
-                placeholder="Describe a mood, activity, or genre… e.g. “upbeat pop for a road trip”"
-                required></textarea>
-      <button id="send" type="submit" class="send">Recommend</button>
-    </form>
-  </div>
+      <div class="chips" aria-label="Example prompts">
+        <button type="button" class="chip">Calm music for studying</button>
+        <button type="button" class="chip">High-energy workout songs</button>
+        <button type="button" class="chip">Sad songs for a rainy day</button>
+        <button type="button" class="chip">Latin party music</button>
+        <button type="button" class="chip">Epic focus for deep work</button>
+      </div>
+    </section>
 
+    <section id="result" class="result" hidden aria-live="polite"></section>
+
+    <section class="services">
+      <p class="services__lead">Generate a playlist for Spotify, Apple Music, YouTube Music — or any music service you love.</p>
+      <div class="services__row">
+        <span class="svc"><span class="svc__dot" style="background:rgba(29,185,84,.9)">♫</span> Spotify</span>
+        <span class="svc"><span class="svc__dot" style="background:rgba(250,43,86,.9)"></span> Apple Music</span>
+        <span class="svc"><span class="svc__dot" style="background:rgba(37,209,218,.9)"></span> Amazon Music</span>
+        <span class="svc"><span class="svc__dot" style="background:rgba(255,0,0,.9)">▶</span> YouTube Music</span>
+        <span class="svc"><span class="svc__dot" style="background:rgba(255,255,255,.85)"></span> TIDAL</span>
+        <span class="svc"><span class="svc__dot" style="background:rgba(162,56,255,.9)"></span> Deezer</span>
+      </div>
+    </section>
+
+    <section id="how" class="section">
+      <h2 class="section__title">How it works</h2>
+      <p class="section__sub">A retrieval-augmented pipeline finds real songs, ranks them with a trained vibe model, and explains every pick.</p>
+      <div class="cards">
+        <div class="feature">
+          <div class="feature__ico" aria-hidden="true">📝</div>
+          <h3>Describe the vibe</h3>
+          <p>Type any mood, activity, or genre in plain language — no tags or filters required.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__ico" aria-hidden="true">🎯</div>
+          <h3>Retrieve &amp; rank</h3>
+          <p>We retrieve matching tracks and re-rank them with a scikit-learn model tuned to your desired vibe.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__ico" aria-hidden="true">💾</div>
+          <h3>Save your library</h3>
+          <p>Create a free account to keep every playlist you generate and revisit it anytime.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="plans" class="section">
+      <h2 class="section__title">Simple, free to start</h2>
+      <p class="section__sub">Everything you need to build and save unlimited playlists.</p>
+      <div class="plan">
+        <div class="plan__price">$0 <span>/ forever</span></div>
+        <ul>
+          <li>Unlimited AI playlist generations</li>
+          <li>Save &amp; organize your playlists</li>
+          <li>Vibe-matched ranking with explanations</li>
+          <li>Works fully offline — no API key needed</li>
+        </ul>
+        <a class="btn btn--primary btn--block" href="/signup">Create your free account</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">Built with a retrieve → rank → generate → verify RAG pipeline · VibeFlow AI Playlist Generator</div>
+  </footer>
+
+  <script src="/static/nav.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

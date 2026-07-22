@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Your saved AI-generated playlists." />
+  <title>Your library — AI Playlist Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/">
+      <span class="brand__icon" aria-hidden="true">✦</span>
+      <span class="brand__meta">
+        <span class="brand__name">AI Playlist Generator <span class="badge-beta">BETA</span></span>
+        <span class="brand__by">By VibeFlow</span>
+      </span>
+    </a>
+    <nav class="nav__right" aria-label="Primary">
+      <a class="nav__link nav__links-hide" href="/">＋ New playlist</a>
+      <span id="auth-slot" class="auth-slot"></span>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div class="page-head">
+      <div>
+        <h1>Your library</h1>
+        <p>Every playlist you’ve saved, ready to revisit.</p>
+      </div>
+      <a class="btn btn--primary" href="/">＋ New playlist</a>
+    </div>
+    <section id="library" aria-live="polite">
+      <div class="empty"><div class="empty__ico">⏳</div><h2>Loading…</h2></div>
+    </section>
+  </main>
+
+  <script src="/static/nav.js" defer></script>
+  <script src="/static/library.js" defer></script>
+</body>
+</html>
