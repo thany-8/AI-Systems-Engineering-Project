@@ -1,1 +1,1 @@
-"""PawPal+ Companion — an agentic AI assistant combining the two Module engines."""
+"""Music RAG Recommender — retrieval-augmented recommendations with a trained vibe model."""
