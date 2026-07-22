@@ -108,12 +108,17 @@ def recommend(
 
     # 1) RETRIEVE
     hits = retr.retrieve(text, k=config.RETRIEVAL_TOP_K)
+    method = getattr(retr, "name", "tfidf")
     trace.append({
         "step": "retrieve",
+        "method": method,
         "k": config.RETRIEVAL_TOP_K,
         "hits": [{"title": h["title"], "score": h["retrieval_score"]} for h in hits],
     })
-    logger.info("[%s] retrieved=%d top=%s", req_id, len(hits), hits[0]["title"] if hits else None)
+    logger.info(
+        "[%s] retrieved=%d via=%s top=%s",
+        req_id, len(hits), method, hits[0]["title"] if hits else None,
+    )
 
     # 2) RE-RANK with the specialized model
     ranked, desired, source = _rerank(text, hits, model)

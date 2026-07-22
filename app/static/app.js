@@ -77,7 +77,7 @@ function renderTrace(trace, meta) {
     let cls = "trace__step";
     if (step.step === "retrieve") {
       const titles = (step.hits || []).map((h) => h.title).join(", ");
-      line = `🔎 retrieve (top ${step.k}) → ${titles || "no matches"}`;
+      line = `🔎 retrieve · ${step.method || "tfidf"} (top ${step.k}) → ${titles || "no matches"}`;
     } else if (step.step === "rank") {
       line = `🎚️ re-rank → desired vibe: ${step.desired_vibe} (${step.source})`;
     } else if (step.step === "guardrail") {
