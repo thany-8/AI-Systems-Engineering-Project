@@ -24,6 +24,7 @@ PAWPAL_DIR = ROOT / "module2-pawpal"                    # Module 2 engine
 RECOMMENDER_DIR = ROOT / "module3-music-recommender"    # Module 3 engine
 SONGS_CSV = RECOMMENDER_DIR / "data" / "songs.csv"
 LOG_DIR = APP_DIR / "logs"
+MODEL_DIR = APP_DIR / "models"
 
 # ── LLM (Google Gemini, free tier) ───────────────────────────────────────
 GEMINI_API_KEY = (
@@ -40,6 +41,14 @@ USE_LLM = bool(GEMINI_API_KEY)
 MAX_INPUT_CHARS = int(os.environ.get("MAX_INPUT_CHARS", "2000"))
 MAX_TOOL_CALLS = int(os.environ.get("MAX_TOOL_CALLS", "4"))   # per request
 MAX_REPLANS = int(os.environ.get("MAX_REPLANS", "2"))         # revisions allowed
+
+# ── Retrieval (RAG) + specialized model ──────────────────────────────────
+RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "5"))
+VIBE_MODEL_PATH = MODEL_DIR / "vibe_model.joblib"
+VIBE_RANDOM_STATE = 42
+# Blend of lexical retrieval score and specialized-model vibe match in ranking.
+RANK_RETRIEVAL_WEIGHT = 0.6
+RANK_VIBE_WEIGHT = 0.4
 
 
 def llm_mode() -> str:
