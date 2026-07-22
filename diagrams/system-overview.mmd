@@ -1,0 +1,32 @@
+%% Music RAG Recommender — System Overview
+%% Shows main components, data flows, and how AI results are checked
+%% (runtime grounding guardrail + offline pytest suite).
+
+flowchart TD
+    User([User]) <-->|"query / recommendations"| UI["Web UI<br/>HTML · CSS · JS"]
+    UI <-->|"POST /api/recommend (JSON)"| API["Flask server<br/>app/server.py"]
+
+    API --> R
+    subgraph Pipeline["RAG pipeline · app/pipeline.py"]
+        direction LR
+        R["① Retrieve"] --> K["② Re-rank"] --> G["③ Generate"] --> V["④ Verify"]
+    end
+    V -->|"answer + trace"| API
+
+    %% Components & data sources
+    R --> Retriever["Retriever: embeddings or TF-IDF<br/>app/retriever.py · embeddings.py"]
+    Retriever --> Corpus[("Enriched song corpus<br/>app/corpus.py ⟵ songs.csv")]
+    K --> Vibe["Specialized vibe model<br/>app/vibe_model.py · scikit-learn"]
+    G --> Gen["Generator: Gemini / offline<br/>app/generator.py"]
+    Pipeline --- Logs[("Structured logs<br/>app/logs/app.log")]
+
+    %% Checking the AI results
+    subgraph QA["Checking the AI results"]
+        direction TB
+        Guard["Grounding guardrail — runtime<br/>rejects invented songs"]
+        Suite["Test suite — pytest, offline<br/>retrieval · model cross-val · grounding · API"]
+    end
+    V --> Guard
+    Suite -. verifies .-> Pipeline
+    Suite -. verifies .-> Vibe
+    Suite -. verifies .-> Retriever

@@ -11,6 +11,21 @@ Module 3 recommender into an applied AI system with two advanced features.
 > Without a key the app uses a **deterministic offline template** for generation and a local
 > **TF-IDF** retriever — so it always runs and is fully testable. The vibe model is always local.
 
+## System at a glance
+
+![System overview](assets/system-overview.png)
+
+**Main components** flow left-to-right: the **Web UI** calls the **Flask server**, which runs the
+**RAG pipeline** (retrieve → re-rank → generate → verify). Retrieval draws on the **enriched song
+corpus** (from `songs.csv`), re-ranking uses the **specialized vibe model**, and generation uses
+the **Gemini / offline generator**; every request is logged.
+
+**AI results are checked two ways:** at **runtime**, a grounding guardrail rejects any song the
+model invents; **offline**, the `pytest` suite verifies retrieval relevance, the vibe model's
+cross-validated accuracy, grounding behavior, and the API. (See
+[`diagrams/system-overview.mmd`](diagrams/system-overview.mmd); the detailed pipeline is in
+[`diagrams/architecture.mmd`](diagrams/architecture.mmd).)
+
 ## Two advanced AI features
 
 **1. Retrieval-Augmented Generation (RAG).** Structured songs from `songs.csv` are turned into
