@@ -47,6 +47,15 @@ VIBE_RANDOM_STATE = 42
 RANK_RETRIEVAL_WEIGHT = 0.6
 RANK_VIBE_WEIGHT = 0.4
 
+# ── Semantic embeddings (optional upgrade over TF-IDF) ───────────────────
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "models/text-embedding-004")
+DOC_EMBED_CACHE = MODEL_DIR / "doc_embeddings.joblib"
+# Use Gemini embeddings for semantic retrieval when a key is available; the app
+# falls back to TF-IDF otherwise (set USE_EMBEDDINGS=0 to force TF-IDF).
+USE_EMBEDDINGS = USE_LLM and os.environ.get("USE_EMBEDDINGS", "1").lower() not in (
+    "0", "false", "no",
+)
+
 
 def llm_mode() -> str:
     """Return the active reasoning mode: 'gemini' or 'offline'."""
