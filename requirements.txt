@@ -1,5 +1,7 @@
-# PawPal+ Companion — combined agentic app
+# Music RAG Recommender
 flask>=3.0
 python-dotenv>=1.0
-google-generativeai>=0.8   # optional at runtime: only needed for Gemini mode
-pytest>=7.0                # tests only
+scikit-learn>=1.4          # retrieval (TF-IDF) + specialized vibe model
+joblib>=1.3               # persist the trained model
+google-generativeai>=0.8  # optional at runtime: only needed for Gemini generation
+pytest>=7.0               # tests only

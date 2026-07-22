@@ -1,45 +1,36 @@
-%% Applied AI System — PawPal+ Companion
-%% Source of truth (Mermaid). Export a PNG to ../assets/ for the README if desired.
-%% Advanced AI feature: an Agentic Workflow (plan → act → check → compose)
-%% that routes between two Module engines and checks its own work.
+%% Applied AI System — Music RAG Recommender
+%% Source of truth (Mermaid). Export a PNG to ../assets/ for the README.
+%% Advanced AI features:
+%%   (1) Retrieval-Augmented Generation — retrieve songs, then generate grounded in them
+%%   (2) A specialized scikit-learn "vibe" model that re-ranks the retrieved songs
 
 flowchart TD
-    User([Pet owner]) -->|types a request| UI["Browser chat UI<br/>HTML · CSS · JS"]
-    UI <-->|POST /api/chat| API["Flask backend<br/>app/server.py"]
+    User([User]) -->|describes a mood / activity| UI["Browser chat UI<br/>HTML · CSS · JS"]
+    UI <-->|POST /api/recommend| API["Flask backend<br/>app/server.py"]
 
-    API --> Plan
+    API --> R
 
-    subgraph Agent["Agentic loop · app/agent.py"]
+    subgraph Pipe["RAG pipeline · app/pipeline.py"]
         direction TB
-        Plan["① Plan — choose tools"]
-        Act["② Act — run tools"]
-        Check{"③ Check — good enough?"}
-        Compose["④ Compose — grounded reply"]
-        Plan --> Act --> Check
-        Check -- "revise: add tools" --> Act
-        Check -- "satisfied" --> Compose
+        R["① Retrieve — TF-IDF over enriched docs"]
+        K["② Re-rank — trained vibe model"]
+        G["③ Generate — grounded answer"]
+        V["④ Verify — grounding guardrail"]
+        R --> K --> G --> V
     end
 
-    Plan -. plan .-> Planner
-    Compose -. compose .-> Planner
-    subgraph Planner["Reasoning · app/llm.py"]
+    R --> Corpus[("Enriched song corpus<br/>app/corpus.py ⟵ songs.csv")]
+    K --> Model["Specialized model<br/>app/vibe_model.py · scikit-learn"]
+
+    G -. generate .-> Gen
+    subgraph Gen["Generation · app/generator.py"]
         Gemini["Google Gemini<br/>(free tier)"]
-        Offline["Deterministic<br/>offline fallback"]
+        Offline["Deterministic<br/>offline template"]
     end
 
-    Act --> ToolsBox
-    subgraph ToolsBox["Tools · app/tools.py"]
-        direction TB
-        PlanTool["plan_pet_day<br/>list_pets_and_tasks"]
-        MusicTool["recommend_music"]
-    end
-    PlanTool --> PawPal["PawPal+ scheduler<br/>module2-pawpal"]
-    MusicTool --> Rec["Music recommender<br/>module3-music-recommender"]
-    Rec --> CSV[("songs.csv")]
+    Guard[["Guardrails<br/>input · grounding"]]
+    Logs[("Structured logs<br/>app/logs/app.log")]
+    Pipe --- Guard
+    Pipe --- Logs
 
-    Guard[["Guardrails<br/>input · tool args · grounding"]]
-    Logs[("Structured logs<br/>app/logs/agent.log")]
-    Agent --- Guard
-    Agent --- Logs
-
-    Compose --> API
+    V --> API
