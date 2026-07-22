@@ -20,3 +20,8 @@ app/logs/*.log
 
 # Trained model artifacts (regenerated on first run)
 app/models/*.joblib
+
+# Local accounts + saved playlists database (SQLite)
+app/app.sqlite
+app/*.sqlite
+app/*.sqlite-*

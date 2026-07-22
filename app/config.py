@@ -36,6 +36,16 @@ LLM_TIMEOUT_S = float(os.environ.get("LLM_TIMEOUT_S", "30"))
 # the app is still fully functional and testable.
 USE_LLM = bool(GEMINI_API_KEY)
 
+# ── Web app: sessions + accounts database ────────────────────────────────
+# Secret used to sign login-session cookies. A stable dev default keeps local
+# runs working out of the box; set SECRET_KEY to a long random value in
+# production so existing sessions can't be forged.
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me-in-production")
+# Accounts and saved playlists live in a local SQLite file by default (free, no
+# external setup). Override DATABASE_URL to point at another SQLAlchemy database.
+DB_PATH = APP_DIR / "app.sqlite"
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DB_PATH}")
+
 # ── Guardrail limits ─────────────────────────────────────────────────────
 MAX_INPUT_CHARS = int(os.environ.get("MAX_INPUT_CHARS", "2000"))
 

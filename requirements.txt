@@ -1,5 +1,7 @@
 # Music RAG Recommender
 flask>=3.0
+flask-login>=0.6           # session-based user accounts (signup / login)
+flask-sqlalchemy>=3.1      # local SQLite storage for users + saved playlists
 python-dotenv>=1.0
 numpy>=1.26               # embedding vectors + cosine ranking
 scikit-learn>=1.4          # retrieval (TF-IDF) + specialized vibe model
