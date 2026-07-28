@@ -18,8 +18,9 @@ local TF-IDF), **re-rank** them with the trained vibe classifier, **generate** a
 (Gemini or an offline template), and **verify** it. User accounts (email + password via Flask-Login)
 and saved playlists persist in a local **SQLite** database. Reactions are stored as feedback and
 aggregated into a per-user **taste profile** that nudges ranking, and an **intensity** signal
-(parsed from the query or set explicitly) re-ranks candidates by each song's energy. A component +
-testing view is in [`diagrams/system-overview.mmd`](diagrams/system-overview.mmd).
+(parsed from the query or set explicitly) biases retrieval and re-ranks candidates by each song's
+energy — so it changes which songs surface. A component + testing view is in
+[`diagrams/system-overview.mmd`](diagrams/system-overview.mmd).
 
 ## Setup
 
@@ -64,19 +65,43 @@ they save — and biases future rankings toward it, transparently:
   and `personal_score` per song. Your taste profile is shown on the library page.
 - **Bounded nudge** — the taste score layers onto retrieval + vibe rather than replacing it, so
   results stay relevant; ranking is unchanged when there's no history.
-- **Intensity nuance** — phrases like "high-energy", "mellow", or "not too intense" set a target
-  energy, plus a Low / Medium / High control to re-run on demand.
+- **Intensity nuance** — phrases like "high-energy", "mellow", or "not too intense" (plus a Low /
+  Medium / High control that re-runs on demand) set a target energy that both **biases retrieval**
+  and re-ranks by it, so the *set* of songs changes, not just their order.
+
+## Experience — responsive, accessible, and resilient
+
+- **Play anywhere** — every track, in results and your saved library, links out to search it on
+  **Spotify, YouTube Music, and Apple Music** (no API keys — it opens the service's search, and the
+  card layout stays offline-first).
+- **Loading states** — a generation runs the full RAG pipeline, so the result card shows a shimmer
+  **skeleton** while it works and the button switches to a spinner ("Creating…"); saving a playlist
+  shows its own spinner. "Quick actions" shortcuts fill and generate **in place** without reloading.
+- **Error handling is visible, never silent** — network/API failures raise a **toast** with the
+  server's message (e.g. "Could not create a playlist"); login/sign-up errors appear inline
+  (`role="alert"`); rate-limited requests return a friendly **429**. Graceful fallbacks keep the app
+  running: **Gemini → offline template** on any API error or timeout, **semantic embeddings → local
+  TF-IDF** without a key/network, and the library shows a clear "couldn't reach the server" state.
+- **Mobile & responsive** — a fluid layout (`clamp()` typography, flexible auto-fill grids) with a
+  760px breakpoint that reflows the nav, hero, and cards to a single column.
+- **Accessibility** — a skip link, semantic landmarks (`header`/`nav`/`main`/`footer`), **ARIA live
+  regions** that announce new results, labelled controls and dropdowns (`aria-label`,
+  `aria-haspopup`, `aria-expanded`), full keyboard support (Enter to generate, Escape closes menus),
+  visible `:focus-visible` outlines, and a `prefers-reduced-motion` mode that disables animations.
 
 ## Sample interaction
 
 > **You:** sad songs for a rainy day
 >
-> **Recommender:**
-> - "Someone Like You" by Adele — sad pop, melancholy vibe (match 0.97)
-> - "Lovely" by Billie Eilish and Khalid — sad alternative-pop, melancholy vibe (match 0.89)
-> - "Shallow" by Lady Gaga and Bradley Cooper — emotional pop, melancholy vibe (match 0.70)
+> **Result:** a ranked playlist **card** — each track shows its title, artist, genre/mood tags, a
+> match score, "Play on Spotify / YouTube / Apple Music" links, and 👍 / 👎 to teach your taste:
+> - "Someone Like You" — Adele · sad pop · **97% match**
+> - "Lovely" — Billie Eilish & Khalid · sad alternative-pop · **89% match**
+> - "Shallow" — Lady Gaga & Bradley Cooper · emotional pop · **73% match**
 >
-> *RAG steps: retrieve → re-rank (desired vibe: melancholy) → grounding passed*
+> Badges show the detected **melancholy** vibe; a Low / Medium / High **intensity** control re-runs
+> it, and signed-in users get an `✨ Personalized from your history` line with a per-song reason.
+> *(RAG steps: retrieve → re-rank → generate → verify.)*
 
 ## Design decisions
 
