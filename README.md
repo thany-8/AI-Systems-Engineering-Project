@@ -92,15 +92,41 @@ they save — and biases future rankings toward it, transparently:
   and a requested intensity layer onto the retrieval + vibe score rather than replacing it, so
   results stay relevant while adapting to taste; each bias is explained per song, and default
   ranking is unchanged when there's no history or intensity.
+- **Abuse & injection defense** — the pipeline endpoint and auth routes are rate-limited per client
+  (Flask-Limiter), and the free-text query is sanitized (control characters stripped, whitespace
+  collapsed) and screened for prompt injection; a suspected attempt skips the LLM entirely and uses
+  the deterministic offline generator, with output grounding as a second layer.
 
 ## Testing
 
 `pytest` runs deterministically offline and covers retrieval relevance, the vibe model (training,
 prediction, cross-validation ≈ 0.70), the embedding retriever, re-rank integration, output
 grounding, the HTTP API, the account + saved-playlist flows (signup/login, password hashing,
-per-user isolation), and personalization (intensity detection, taste-profile aggregation, reaction
-toggles, and their ranking effects). At runtime, the grounding guardrail additionally checks every
-generated answer for hallucinated songs before it reaches the user.
+per-user isolation), personalization (intensity detection, taste-profile aggregation, reaction
+toggles, and their ranking effects), and hardening (input sanitization, prompt-injection detection
+that bypasses the LLM, and rate-limit 429s). At runtime, the grounding guardrail additionally checks
+every generated answer for hallucinated songs before it reaches the user.
+
+## Deployment
+
+The dev server (`python run.py`) is for local use only. For production the app ships with a
+**gunicorn** WSGI config and a **Docker** setup:
+
+```bash
+cp .env.example .env             # set a strong SECRET_KEY (and optional GEMINI_API_KEY)
+docker compose up --build        # → http://localhost:8000
+# …or without Docker:
+gunicorn --config gunicorn.conf.py app.server:app
+```
+
+- `gunicorn.conf.py` preloads the app so the schema is created once (no multi-worker boot race) and
+  disposes each worker's DB engine after fork; the Docker image runs as a non-root user and
+  pre-trains the vibe model at build time.
+- **Scaling past SQLite / a single process:** point `DATABASE_URL` at Postgres
+  (`postgresql+psycopg2://…`, add `psycopg2-binary`) and `RATELIMIT_STORAGE_URI` at Redis
+  (`redis://…`) so data and rate limits are shared across workers/instances — both are wired as
+  commented services in `docker-compose.yml`. Tunables: `WEB_CONCURRENCY`, `RATELIMIT_RECOMMEND`,
+  `RATELIMIT_AUTH`.
 
 ## Reflection
 
