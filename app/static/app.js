@@ -63,28 +63,35 @@ if (preset) {
 }
 
 /* --- generate -------------------------------------------------------- */
-form.addEventListener("submit", async (e) => {
+form.addEventListener("submit", (e) => {
   e.preventDefault();
   const query = promptEl.value.trim();
   if (!query) {
     promptEl.focus();
     return;
   }
+  runGenerate(query);
+});
+
+async function runGenerate(query, intensity) {
   setLoading(true);
   showSkeleton();
   try {
-    const res = await window.API.send("/api/recommend", "POST", { query });
+    const body = { query };
+    if (intensity != null) body.intensity = intensity;
+    const res = await window.API.send("/api/recommend", "POST", body);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Could not create a playlist.");
-    lastResult = { query, ...data };
+    lastResult = { query, intensity, ...data };
     renderPlaylist(lastResult);
+    if (window.currentUser) markReactions();
   } catch (err) {
     resultEl.hidden = true;
     window.toast(err.message || "Something went wrong.", "err");
   } finally {
     setLoading(false);
   }
-});
+}
 
 function setLoading(on) {
   createBtn.disabled = on;
@@ -118,6 +125,7 @@ function renderPlaylist(data) {
   const vibe = data.desired_vibe || (songs[0] && songs[0].vibe) || "";
   const cover = VIBE_ART[vibe] || "🎵";
   const title = titleFor(data.query);
+  const intensity = data.desired_intensity ? data.desired_intensity.label : null;
 
   const card = document.createElement("div");
   card.className = "playlist-card";
@@ -129,11 +137,21 @@ function renderPlaylist(data) {
         <p class="pc__meta">${songs.length} track${songs.length === 1 ? "" : "s"} · matched to your request</p>
         <div class="pc__badges">
           ${vibe ? `<span class="tag tag--vibe">${window.escapeHtml(vibe)} vibe</span>` : ""}
+          ${intensity ? `<span class="tag tag--intensity">${window.escapeHtml(intensity)} intensity</span>` : ""}
+          ${data.personalized ? `<span class="tag tag--personal">✨ Personalized for you</span>` : ""}
           <span class="tag tag--mode">${data.mode === "gemini" ? "Gemini reasoning" : "Offline engine"}</span>
         </div>
       </div>
     </div>
     ${data.answer ? `<p class="pc__note">${window.escapeHtml(data.answer)}</p>` : ""}
+    <div class="refine">
+      <span class="refine__label">Intensity</span>
+      <div class="seg" role="group" aria-label="Adjust intensity and regenerate">
+        <button type="button" class="seg__btn" data-energy="low">Low</button>
+        <button type="button" class="seg__btn" data-energy="medium">Medium</button>
+        <button type="button" class="seg__btn" data-energy="high">High</button>
+      </div>
+    </div>
     <ol class="tracks"></ol>
     <div class="pc__actions"></div>`;
 
@@ -141,6 +159,11 @@ function renderPlaylist(data) {
   songs.forEach((song, i) => list.appendChild(renderTrack(song, i)));
 
   card.querySelector(".pc__actions").append(...actionButtons(data));
+
+  card.querySelectorAll(".seg__btn").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.energy === intensity);
+    btn.addEventListener("click", () => runGenerate(lastResult.query, btn.dataset.energy));
+  });
 
   resultEl.hidden = false;
   resultEl.innerHTML = "";
@@ -165,11 +188,86 @@ function renderTrack(song, index) {
       </div>
       ${window.playLinksHtml(song.title, song.artist)}
     </div>
+    <div class="track__react">
+      <button class="react react--up" type="button" title="More like this"
+        aria-label="More like this: ${window.escapeHtml(song.title || "")}">👍</button>
+      <button class="react react--down" type="button" title="Less like this"
+        aria-label="Less like this: ${window.escapeHtml(song.title || "")}">👎</button>
+    </div>
     <div class="track__match">
       <div class="match__pct">${pct}%</div>
       <div class="match__bar"><div class="match__fill" style="width:${pct}%"></div></div>
     </div>`;
+
+  const reactEl = li.querySelector(".track__react");
+  reactEl.dataset.key = reactionKey(song.title, song.artist);
+  const up = reactEl.querySelector(".react--up");
+  const down = reactEl.querySelector(".react--down");
+  up.addEventListener("click", () => react(song, 1, up, down));
+  down.addEventListener("click", () => react(song, -1, up, down));
   return li;
+}
+
+/* --- reactions (👍 / 👎) → taste profile --------------------------------- */
+function reactionKey(title, artist) {
+  return `${title}\u0001${artist || ""}`;
+}
+
+function setReactionState(upBtn, downBtn, state) {
+  upBtn.classList.toggle("is-active", state === "liked");
+  downBtn.classList.toggle("is-active", state === "disliked");
+}
+
+async function react(song, signal, upBtn, downBtn) {
+  if (!window.currentUser) {
+    window.toast("Log in to react and personalize your recommendations", "err");
+    return;
+  }
+  try {
+    const res = await window.API.send("/api/feedback", "POST", {
+      title: song.title,
+      artist: song.artist,
+      genre: song.genre,
+      mood: song.mood,
+      vibe: song.vibe,
+      energy: song.energy,
+      valence: song.valence,
+      signal,
+      query: lastResult && lastResult.query,
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || "Couldn't save your reaction.");
+    setReactionState(upBtn, downBtn, body.state);
+    const msg =
+      body.state === "cleared"
+        ? "Reaction removed"
+        : body.state === "liked"
+        ? "👍 Added to your taste — future picks will lean this way"
+        : "👎 Noted — we'll surface fewer like this";
+    window.toast(msg, "ok");
+  } catch (err) {
+    window.toast(err.message, "err");
+  }
+}
+
+// After a fresh render, restore reaction state from the user's saved feedback.
+async function markReactions() {
+  try {
+    const res = await window.API.get("/api/feedback");
+    if (!res.ok) return;
+    const map = {};
+    (await res.json()).feedback.forEach((f) => {
+      map[reactionKey(f.title, f.artist)] = f.signal;
+    });
+    document.querySelectorAll(".track__react").forEach((el) => {
+      const sig = map[el.dataset.key];
+      const up = el.querySelector(".react--up");
+      const down = el.querySelector(".react--down");
+      setReactionState(up, down, sig === 1 ? "liked" : sig === -1 ? "disliked" : "cleared");
+    });
+  } catch (_) {
+    /* non-fatal */
+  }
 }
 
 function actionButtons(data) {
@@ -224,10 +322,11 @@ function renderSaveControl(wrap, data) {
   }
 }
 
-// If auth resolves after a playlist is already on screen, refresh the control.
+// If auth resolves after a playlist is already on screen, refresh the controls.
 document.addEventListener("auth:ready", () => {
   const wrap = document.getElementById("save-wrap");
   if (wrap && lastResult) renderSaveControl(wrap, lastResult);
+  if (window.currentUser && lastResult) markReactions();
 });
 
 /* --- save + copy ----------------------------------------------------- */

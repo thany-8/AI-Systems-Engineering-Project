@@ -119,4 +119,54 @@ function emptyState() {
     </div>`;
 }
 
+/* --- taste profile ---------------------------------------------------- */
+async function loadTaste() {
+  const host = document.getElementById("taste");
+  if (!host) return;
+  let res;
+  try {
+    res = await window.API.get("/api/profile");
+  } catch (_) {
+    return;
+  }
+  if (!res.ok) return;
+  const profile = (await res.json()).profile || {};
+  host.innerHTML = profile.n ? renderTaste(profile) : "";
+}
+
+function tasteTags(items) {
+  return `<div class="taste__vals">${items
+    .map((i) => `<span class="tag">${esc(i.name)}${i.count > 1 ? ` ×${i.count}` : ""}</span>`)
+    .join("")}</div>`;
+}
+
+function renderTaste(p) {
+  const rows = [];
+  if (p.top_vibes.length) rows.push(["Vibes you like", tasteTags(p.top_vibes)]);
+  if (p.top_genres.length) rows.push(["Top genres", tasteTags(p.top_genres)]);
+  if (p.top_artists.length) rows.push(["Top artists", tasteTags(p.top_artists)]);
+  if (p.intensity) {
+    rows.push([
+      "Intensity",
+      `<div class="taste__vals"><span class="tag tag--intensity">${esc(p.intensity)}</span></div>`,
+    ]);
+  }
+  if (p.disliked_vibes && p.disliked_vibes.length) {
+    rows.push(["Not for you", tasteTags(p.disliked_vibes)]);
+  }
+  const rowsHtml = rows
+    .map(([key, vals]) => `<div class="taste__row"><span class="taste__key">${esc(key)}</span>${vals}</div>`)
+    .join("");
+  return `
+    <div class="taste">
+      <div class="taste__head">
+        <span aria-hidden="true" style="font-size:1.3rem">✨</span>
+        <h2>Your taste profile</h2>
+        <span class="taste__counts">${p.likes} 👍 · ${p.dislikes} 👎 · learned from your reactions</span>
+      </div>
+      <div class="taste__rows">${rowsHtml}</div>
+    </div>`;
+}
+
 load();
+loadTaste();

@@ -243,6 +243,49 @@ a { color: inherit; text-decoration: none; }
 }
 .tag--vibe { background: rgba(109, 94, 252, .22); border-color: rgba(143, 130, 255, .45); color: #d7d1ff; }
 .tag--mode { background: rgba(111, 242, 201, .14); border-color: rgba(111, 242, 201, .35); color: var(--mint); }
+.tag--intensity { background: rgba(255, 173, 92, .16); border-color: rgba(255, 173, 92, .42); color: #ffcaa0; }
+.tag--personal { background: rgba(143, 130, 255, .22); border-color: rgba(143, 130, 255, .5); color: #d9d3ff; text-transform: none; }
+
+/* Intensity refine control */
+.refine { display: flex; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--border); }
+.refine__label { font-size: .74rem; font-weight: 700; letter-spacing: .4px; color: var(--muted); text-transform: uppercase; }
+.seg { display: inline-flex; background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg__btn {
+  font-family: inherit; font-size: .82rem; font-weight: 700; color: var(--muted); cursor: pointer;
+  padding: 6px 16px; border: 0; border-radius: 999px; background: transparent;
+  transition: color .14s ease, background .14s ease, box-shadow .2s ease;
+}
+.seg__btn:hover { color: var(--ink); }
+.seg__btn.is-active {
+  background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: #fff;
+  box-shadow: 0 6px 16px -8px var(--accent-glow);
+}
+
+/* Per-track 👍 / 👎 reactions */
+.track__react { display: flex; gap: 4px; flex: none; }
+.react {
+  font-size: 1rem; line-height: 1; cursor: pointer; padding: 6px 8px; border-radius: 9px;
+  background: transparent; border: 1px solid transparent; opacity: .45;
+  transition: opacity .14s ease, background .14s ease, border-color .14s ease, transform .1s ease;
+}
+.react:hover { opacity: 1; background: var(--card-2); }
+.react:active { transform: scale(.88); }
+.react:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.react--up.is-active { opacity: 1; background: rgba(85, 226, 164, .18); border-color: rgba(85, 226, 164, .5); }
+.react--down.is-active { opacity: 1; background: rgba(255, 107, 129, .16); border-color: rgba(255, 107, 129, .5); }
+
+/* Taste profile card (library) */
+.taste {
+  border: 1px solid rgba(143, 130, 255, .4); border-radius: 18px; padding: 20px 22px; margin: 22px 0 4px;
+  background: linear-gradient(180deg, rgba(109, 94, 252, .14), rgba(255, 255, 255, .02));
+}
+.taste__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.taste__head h2 { margin: 0; font-size: 1.15rem; }
+.taste__counts { color: var(--muted); font-size: .85rem; margin-left: auto; }
+.taste__rows { display: grid; gap: 12px; }
+.taste__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.taste__key { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted-2); width: 96px; flex: none; }
+.taste__vals { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .pc__note {
   margin: 0; padding: 16px 22px; color: var(--muted); font-size: .92rem;
