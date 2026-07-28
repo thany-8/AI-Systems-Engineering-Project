@@ -2,9 +2,11 @@
 flask>=3.0
 flask-login>=0.6           # session-based user accounts (signup / login)
 flask-sqlalchemy>=3.1      # local SQLite storage for users + saved playlists
+flask-limiter>=3.5         # per-client rate limiting on the API
 python-dotenv>=1.0
 numpy>=1.26               # embedding vectors + cosine ranking
 scikit-learn>=1.4          # retrieval (TF-IDF) + specialized vibe model
 joblib>=1.3               # persist the trained model + cached embeddings
 google-generativeai>=0.8  # optional at runtime: Gemini generation + embeddings
+gunicorn>=21.0            # production WSGI server (see Dockerfile)
 pytest>=7.0               # tests only

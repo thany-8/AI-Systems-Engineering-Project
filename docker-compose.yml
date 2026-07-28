@@ -1,0 +1,39 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Required: sign session cookies. Put a strong value in your .env file
+      # (docker compose loads .env automatically).
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in your .env (e.g. python -c "import secrets;print(secrets.token_hex(32))")}
+      # Optional: enable Gemini reasoning; omit to run in offline mode.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      WEB_CONCURRENCY: "2"
+      # With >1 worker, share rate-limit state across workers via Redis:
+      # RATELIMIT_STORAGE_URI: redis://redis:6379
+      # Use a scalable database instead of SQLite (add psycopg2-binary to requirements):
+      # DATABASE_URL: postgresql+psycopg2://appuser:apppass@db:5432/appdb
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+
+  # Uncomment for production-grade rate limiting shared across workers.
+  # redis:
+  #   image: redis:7-alpine
+  #   restart: unless-stopped
+
+  # Uncomment to run on Postgres instead of SQLite (also set DATABASE_URL above).
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: appuser
+  #     POSTGRES_PASSWORD: apppass
+  #     POSTGRES_DB: appdb
+  #   volumes:
+  #     - pg-data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+volumes:
+  app-data:
+  # pg-data:

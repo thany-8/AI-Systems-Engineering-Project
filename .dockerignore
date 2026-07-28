@@ -1,0 +1,25 @@
+# Version control & envs
+.git
+.gitignore
+.venv
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Secrets & runtime artifacts (regenerated in the image / at runtime)
+.env
+app/app.sqlite
+app/*.sqlite
+app/*.sqlite-*
+app/models/*.joblib
+app/logs/*.log
