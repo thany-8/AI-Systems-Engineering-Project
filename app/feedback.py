@@ -79,8 +79,15 @@ def list_feedback():
     return jsonify({"feedback": [r.to_dict() for r in rows]})
 
 
+def profile_for(user):
+    """Build a taste profile from the user's history: 👍 / 👎 reactions and the
+    songs in their saved playlists (an implicit positive signal)."""
+    rows = Feedback.query.filter_by(user_id=user.id).all()
+    saved_songs = [song for playlist in user.playlists for song in playlist.songs]
+    return personalize.build_profile(rows, saved_songs, len(user.playlists))
+
+
 @bp.get("/api/profile")
 @login_required
 def get_profile():
-    rows = Feedback.query.filter_by(user_id=current_user.id).all()
-    return jsonify({"profile": personalize.summary(personalize.build_profile(rows))})
+    return jsonify({"profile": personalize.summary(profile_for(current_user))})

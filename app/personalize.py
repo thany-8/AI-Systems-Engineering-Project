@@ -1,141 +1,172 @@
-"""Taste-profile logic: turn a user's 👍/👎 feedback into a preference profile
-and score how well a candidate song matches it.
+"""Taste-profile logic: turn a user's *history* — 👍 / 👎 reactions **and** the
+songs in their saved playlists — into a weighted preference profile, score how
+well a candidate song matches it, and explain *why*.
 
-Kept free of Flask/DB imports so it stays deterministic and unit-testable — it
-operates on plain feedback rows (anything exposing ``signal``, ``vibe``,
-``genre``, ``artist`` and ``energy``).
+Kept free of Flask/DB imports so the ranking bias is deterministic and
+unit-testable: it operates on plain feedback rows (exposing ``signal``, ``vibe``,
+``genre``, ``artist``, ``energy``) and song dicts.
 """
 from __future__ import annotations
 
-from collections import Counter
+from collections import defaultdict
 from typing import Any
 
+# Signal weights — an explicit reaction counts more than an implicit "save".
+LIKE_WEIGHT = 1.0
+DISLIKE_WEIGHT = -1.0
+SAVED_WEIGHT = 0.5
 
-def build_profile(rows: list[Any]) -> dict[str, Any]:
-    """Aggregate feedback rows into a taste profile."""
-    liked_vibes, disliked_vibes = Counter(), Counter()
-    liked_genres, disliked_genres = Counter(), Counter()
-    liked_artists, disliked_artists = Counter(), Counter()
-    liked_energies: list[float] = []
+
+def _norm(value: Any) -> str:
+    return value.strip().lower() if isinstance(value, str) else ""
+
+
+def build_profile(feedback_rows, saved_songs=None, saved_playlists=0):
+    """Aggregate a user's reactions and saved-playlist songs into weighted
+    per-attribute preferences (positive = liked, negative = avoided)."""
+    vibe: dict[str, float] = defaultdict(float)
+    genre: dict[str, float] = defaultdict(float)
+    artist: dict[str, float] = defaultdict(float)
+    energy_num = energy_den = 0.0
     likes = dislikes = 0
 
-    for row in rows:
-        positive = (getattr(row, "signal", 0) or 0) > 0
-        vibe = (getattr(row, "vibe", None) or "").lower()
-        genre = (getattr(row, "genre", None) or "").lower()
-        artist = (getattr(row, "artist", None) or "").lower()
-        energy = getattr(row, "energy", None)
+    def add(weight, v, g, a, energy):
+        nonlocal energy_num, energy_den
+        if v:
+            vibe[v] += weight
+        if g:
+            genre[g] += weight
+        if a:
+            artist[a] += weight
+        if weight > 0 and energy is not None:
+            try:
+                energy_num += weight * float(energy)
+                energy_den += weight
+            except (TypeError, ValueError):
+                pass
 
-        if positive:
-            likes += 1
-            if vibe:
-                liked_vibes[vibe] += 1
-            if genre:
-                liked_genres[genre] += 1
-            if artist:
-                liked_artists[artist] += 1
-            if energy is not None:
-                liked_energies.append(float(energy))
-        else:
-            dislikes += 1
-            if vibe:
-                disliked_vibes[vibe] += 1
-            if genre:
-                disliked_genres[genre] += 1
-            if artist:
-                disliked_artists[artist] += 1
+    for row in feedback_rows or []:
+        positive = (getattr(row, "signal", 0) or 0) > 0
+        likes, dislikes = (likes + 1, dislikes) if positive else (likes, dislikes + 1)
+        add(
+            LIKE_WEIGHT if positive else DISLIKE_WEIGHT,
+            _norm(getattr(row, "vibe", None)),
+            _norm(getattr(row, "genre", None)),
+            _norm(getattr(row, "artist", None)),
+            getattr(row, "energy", None),
+        )
+
+    songs = saved_songs or []
+    for song in songs:
+        add(
+            SAVED_WEIGHT,
+            _norm(song.get("vibe")),
+            _norm(song.get("genre")),
+            _norm(song.get("artist")),
+            song.get("energy"),
+        )
 
     return {
-        "liked_vibes": liked_vibes,
-        "disliked_vibes": disliked_vibes,
-        "liked_genres": liked_genres,
-        "disliked_genres": disliked_genres,
-        "liked_artists": liked_artists,
-        "disliked_artists": disliked_artists,
-        "pref_energy": (sum(liked_energies) / len(liked_energies)) if liked_energies else None,
+        "vibe": dict(vibe),
+        "genre": dict(genre),
+        "artist": dict(artist),
+        "pref_energy": (energy_num / energy_den) if energy_den else None,
         "likes": likes,
         "dislikes": dislikes,
-        "n": likes + dislikes,
+        "saved_playlists": saved_playlists,
+        "saved_songs": len(songs),
+        "n": likes + dislikes + len(songs),
     }
 
 
-def has_signal(profile: dict[str, Any] | None) -> bool:
-    """True when the profile carries at least one reaction to learn from."""
+def has_signal(profile) -> bool:
+    """True when the profile carries any history to learn from."""
     return bool(profile) and profile.get("n", 0) > 0
 
 
-def score(song: dict[str, Any], profile: dict[str, Any] | None) -> float:
-    """Return a taste-match score in ``[-1, 1]`` for a candidate song.
+def _clip(value: float) -> float:
+    return max(-1.0, min(1.0, value))
 
-    Positive means it resembles songs the user liked; negative means it
-    resembles ones they disliked (a disliked artist is penalised most).
-    """
+
+def score(song, profile) -> float:
+    """Taste match in ``[-1, 1]``: positive means the song resembles the user's
+    history (liked vibes/genres/artists), negative means it resembles avoided
+    ones."""
     if not has_signal(profile):
         return 0.0
-    vibe = (song.get("vibe") or "").lower()
-    genre = (song.get("genre") or "").lower()
-    artist = (song.get("artist") or "").lower()
+    vibe = _norm(song.get("vibe"))
+    genre = _norm(song.get("genre"))
+    artist = _norm(song.get("artist"))
+    value = (
+        0.5 * _clip(profile["vibe"].get(vibe, 0.0))
+        + 0.4 * _clip(profile["genre"].get(genre, 0.0))
+        + 0.5 * _clip(profile["artist"].get(artist, 0.0))
+    )
+    return _clip(value)
 
-    value = 0.0
-    if vibe in profile["liked_vibes"]:
-        value += 0.5
-    if vibe in profile["disliked_vibes"]:
-        value -= 0.5
-    if genre in profile["liked_genres"]:
-        value += 0.4
-    if genre in profile["disliked_genres"]:
-        value -= 0.4
-    if artist in profile["liked_artists"]:
-        value += 0.4
-    if artist in profile["disliked_artists"]:
-        value -= 0.6
-    return max(-1.0, min(1.0, value))
+
+def explain(song, profile):
+    """The single most salient reason a song was biased, or ``None``.
+
+    e.g. ``{"dir": "up", "text": "you like Neon Echo"}``.
+    """
+    if not has_signal(profile):
+        return None
+    vibe = _norm(song.get("vibe"))
+    genre = _norm(song.get("genre"))
+    artist = _norm(song.get("artist"))
+    av = profile["artist"].get(artist, 0.0)
+    gv = profile["genre"].get(genre, 0.0)
+    vv = profile["vibe"].get(vibe, 0.0)
+
+    candidates: list[tuple[float, str, str]] = []
+    if av > 0:
+        candidates.append((abs(av) + 0.3, "up", f"you like {song.get('artist')}"))
+    if gv > 0:
+        candidates.append((abs(gv) + 0.15, "up", f"you like {song.get('genre')}"))
+    elif gv < 0:
+        candidates.append((abs(gv) + 0.15, "down", f"you skip {song.get('genre')}"))
+    if vv > 0:
+        candidates.append((abs(vv), "up", f"matches your {vibe} taste"))
+    elif vv < 0:
+        candidates.append((abs(vv), "down", f"not your usual {vibe}"))
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda c: c[0], reverse=True)
+    _, direction, text = candidates[0]
+    return {"dir": direction, "text": text}
 
 
 def _intensity_label(energy: float) -> str:
     return "high" if energy >= 0.66 else "low" if energy <= 0.4 else "medium"
 
 
-def summary(profile: dict[str, Any]) -> dict[str, Any]:
-    """A JSON-friendly view of the profile for the UI."""
+def summary(profile):
+    """JSON-friendly taste profile for the UI (net preferences + sources)."""
     if not has_signal(profile):
         return {
-            "n": 0,
-            "likes": 0,
-            "dislikes": 0,
-            "top_vibes": [],
-            "top_genres": [],
-            "top_artists": [],
-            "disliked_vibes": [],
-            "intensity": None,
-            "pref_energy": None,
+            "n": 0, "likes": 0, "dislikes": 0, "saved_playlists": 0, "saved_songs": 0,
+            "top_vibes": [], "top_genres": [], "top_artists": [],
+            "disliked_vibes": [], "intensity": None, "pref_energy": None,
         }
 
-    def top(counter: Counter, k: int = 3) -> list[dict[str, Any]]:
-        return [{"name": name, "count": count} for name, count in counter.most_common(k)]
-
-    # Net vibe preference so a vibe never appears as both liked and disliked
-    # (e.g. a 👍 and a 👎 on two songs that share the same vibe cancel out).
-    liked_v, disliked_v = profile["liked_vibes"], profile["disliked_vibes"]
-    net = {v: liked_v.get(v, 0) - disliked_v.get(v, 0) for v in set(liked_v) | set(disliked_v)}
-    top_vibes = [
-        {"name": v, "count": liked_v[v]}
-        for v in sorted((v for v in net if net[v] > 0), key=lambda v: -net[v])[:3]
-    ]
-    not_for_you = [
-        {"name": v, "count": disliked_v[v]}
-        for v in sorted((v for v in net if net[v] < 0), key=lambda v: net[v])[:3]
-    ]
+    def top(pref, positive=True, k=3):
+        items = [(name, w) for name, w in pref.items() if (w > 0 if positive else w < 0)]
+        items.sort(key=lambda item: abs(item[1]), reverse=True)
+        return [{"name": name, "weight": round(w, 2)} for name, w in items[:k]]
 
     pref_energy = profile.get("pref_energy")
     return {
         "n": profile["n"],
         "likes": profile["likes"],
         "dislikes": profile["dislikes"],
-        "top_vibes": top_vibes,
-        "top_genres": top(profile["liked_genres"]),
-        "top_artists": top(profile["liked_artists"]),
-        "disliked_vibes": not_for_you,
+        "saved_playlists": profile.get("saved_playlists", 0),
+        "saved_songs": profile.get("saved_songs", 0),
+        "top_vibes": top(profile["vibe"], True),
+        "top_genres": top(profile["genre"], True),
+        "top_artists": top(profile["artist"], True),
+        "disliked_vibes": top(profile["vibe"], False),
         "intensity": None if pref_energy is None else _intensity_label(pref_energy),
         "pref_energy": None if pref_energy is None else round(pref_energy, 2),
     }

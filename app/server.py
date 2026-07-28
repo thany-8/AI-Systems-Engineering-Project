@@ -17,9 +17,8 @@ from __future__ import annotations
 from flask import Flask, jsonify, request, send_from_directory
 from flask_login import current_user
 
-from app import config, guardrails, personalize, pipeline
+from app import config, guardrails, pipeline
 from app.extensions import db, login_manager
-from app.models import Feedback
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -83,11 +82,11 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.post("/api/recommend")
     def recommend():
+        from app.feedback import profile_for
+
         data = request.get_json(silent=True) or {}
-        profile = None
-        if current_user.is_authenticated:  # personalize from past reactions
-            rows = Feedback.query.filter_by(user_id=current_user.id).all()
-            profile = personalize.build_profile(rows)
+        # Personalize from the signed-in user's history (reactions + saved playlists).
+        profile = profile_for(current_user) if current_user.is_authenticated else None
         try:
             result = pipeline.recommend(
                 data.get("query", ""),

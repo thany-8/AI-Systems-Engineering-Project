@@ -49,7 +49,7 @@ _VIBE_KEYWORDS = {
 _PUBLIC_FIELDS = (
     "title", "artist", "genre", "mood", "vibe", "vibe_confidence",
     "energy", "valence", "retrieval_score", "final_score",
-    "intensity_match", "personal_score",
+    "intensity_match", "personal_score", "personal_why",
 )
 
 
@@ -180,6 +180,9 @@ def _rerank(
         if personalized:
             personal = personalize.score(h, profile)
             h["personal_score"] = round(personal, 3)
+            why = personalize.explain(h, profile)
+            if why:
+                h["personal_why"] = why
             score += config.RANK_PERSONALIZATION_WEIGHT * personal
         h["final_score"] = round(score, 4)
     ranked = sorted(hits, key=lambda s: s["final_score"], reverse=True)
@@ -265,6 +268,12 @@ def recommend(
         "desired_vibe": desired,
         "desired_intensity": intensity_info,
         "personalized": personalized,
+        "personalization": {
+            "applied": personalized,
+            "reactions": (user_profile or {}).get("likes", 0)
+            + (user_profile or {}).get("dislikes", 0),
+            "saved_playlists": (user_profile or {}).get("saved_playlists", 0),
+        },
         "request_id": req_id,
         "elapsed_ms": elapsed,
     }
