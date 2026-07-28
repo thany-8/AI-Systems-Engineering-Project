@@ -15,9 +15,11 @@ JSON API:
 from __future__ import annotations
 
 from flask import Flask, jsonify, request, send_from_directory
+from flask_login import current_user
 
-from app import config, guardrails, pipeline
+from app import config, guardrails, personalize, pipeline
 from app.extensions import db, login_manager
+from app.models import Feedback
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -41,9 +43,11 @@ def create_app(test_config: dict | None = None) -> Flask:
     from app import models  # noqa: F401  (side effect: model + user_loader setup)
     from app.auth import bp as auth_bp
     from app.playlists import bp as playlists_bp
+    from app.feedback import bp as feedback_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(playlists_bp)
+    app.register_blueprint(feedback_bp)
 
     with app.app_context():
         db.create_all()
@@ -80,8 +84,16 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.post("/api/recommend")
     def recommend():
         data = request.get_json(silent=True) or {}
+        profile = None
+        if current_user.is_authenticated:  # personalize from past reactions
+            rows = Feedback.query.filter_by(user_id=current_user.id).all()
+            profile = personalize.build_profile(rows)
         try:
-            result = pipeline.recommend(data.get("query", ""))
+            result = pipeline.recommend(
+                data.get("query", ""),
+                user_profile=profile,
+                intensity=data.get("intensity"),
+            )
         except guardrails.GuardrailError as exc:
             return jsonify({"error": str(exc)}), 400
         except Exception:  # pragma: no cover - defensive
