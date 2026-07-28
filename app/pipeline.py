@@ -86,6 +86,17 @@ def _intensity_label(energy: float) -> str:
     return "high" if energy >= 0.66 else "low" if energy <= 0.4 else "medium"
 
 
+def _intensity_retrieval_hint(energy: float) -> str:
+    """Energy keywords appended to the retrieval query so intensity changes
+    *which* songs are found (they match the enriched corpus descriptions), not
+    only their order."""
+    if energy >= 0.66:
+        return "high-energy energetic intense fast powerful"
+    if energy <= 0.4:
+        return "low-energy calm mellow slow relaxing acoustic"
+    return "medium-energy moderate"
+
+
 def detect_intensity(query: str) -> dict[str, Any] | None:
     """Infer a desired intensity (target energy) from the query, or ``None``."""
     low = f" {query.lower()} "
@@ -209,13 +220,18 @@ def recommend(
     trace: list[dict[str, Any]] = []
     logger.info("[%s] query=%r mode=%s", req_id, text[:200], config.llm_mode())
 
-    # 1) RETRIEVE (a larger pool when intensity/personalization can re-order it)
+    # 1) RETRIEVE (a larger pool when intensity/personalization can re-order it).
+    # When an intensity is requested, bias the retrieval query toward that energy
+    # so the *set* of candidate songs shifts, not just their ranking.
     pool_k = (
         config.RERANK_POOL_K
         if (desired_energy is not None or personalized)
         else config.RETRIEVAL_TOP_K
     )
-    hits = retr.retrieve(text, k=pool_k)
+    retrieval_text = text
+    if desired_energy is not None:
+        retrieval_text = f"{text} {_intensity_retrieval_hint(desired_energy)}"
+    hits = retr.retrieve(retrieval_text, k=pool_k)
     method = getattr(retr, "name", "tfidf")
     trace.append({
         "step": "retrieve",
