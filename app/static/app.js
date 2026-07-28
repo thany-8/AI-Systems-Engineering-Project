@@ -163,6 +163,7 @@ function renderTrack(song, index) {
         ${song.genre ? `<span class="tag">${window.escapeHtml(song.genre)}</span>` : ""}
         ${song.mood ? `<span class="tag">${window.escapeHtml(song.mood)}</span>` : ""}
       </div>
+      ${window.playLinksHtml(song.title, song.artist)}
     </div>
     <div class="track__match">
       <div class="match__pct">${pct}%</div>

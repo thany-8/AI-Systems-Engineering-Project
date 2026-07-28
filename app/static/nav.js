@@ -23,6 +23,38 @@ window.escapeHtml = function (value) {
   return div.innerHTML;
 };
 
+/* Streaming "listen on" deep-links. The catalog stores only title + artist (no
+ * real track IDs), so each link opens the service's search for the track — it
+ * lands on the exact song for real titles and the closest match otherwise. This
+ * needs no API keys, so it keeps the app's zero-config, offline-first design. */
+window.PLAY_SERVICES = [
+  { key: "spotify", name: "Spotify", url: (q) => `https://open.spotify.com/search/${q}` },
+  { key: "youtube", name: "YouTube", url: (q) => `https://music.youtube.com/search?q=${q}` },
+  { key: "apple", name: "Apple Music", url: (q) => `https://music.apple.com/us/search?term=${q}` },
+];
+
+window.playLinks = function (title, artist) {
+  const query = encodeURIComponent([title, artist].filter(Boolean).join(" ").trim());
+  return window.PLAY_SERVICES.map((svc) => ({ ...svc, href: svc.url(query) }));
+};
+
+// Return an HTML row of play links for a track. `title`/`artist` are only used
+// inside the escaped aria-label; the hrefs carry a URL-encoded (attribute-safe)
+// query, so this is safe to inject via innerHTML.
+window.playLinksHtml = function (title, artist) {
+  if (!title) return "";
+  const aria = window.escapeHtml(`Listen to ${title} by ${artist || "unknown artist"} on`);
+  const links = window
+    .playLinks(title, artist)
+    .map(
+      (svc) =>
+        `<a class="play play--${svc.key}" href="${svc.href}" target="_blank" rel="noopener noreferrer" ` +
+        `aria-label="${aria} ${window.escapeHtml(svc.name)}">${window.escapeHtml(svc.name)}</a>`
+    )
+    .join("");
+  return `<div class="track__play"><span class="play__lead" aria-hidden="true">▶ Play on</span>${links}</div>`;
+};
+
 window.toast = function (message, kind) {
   let host = document.querySelector(".toast-host");
   if (!host) {

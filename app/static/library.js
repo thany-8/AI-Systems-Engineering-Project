@@ -76,6 +76,7 @@ function card(playlist) {
             <div class="track__main">
               <div class="track__title">${esc(s.title)}</div>
               <div class="track__artist">${esc(s.artist)}</div>
+              ${window.playLinksHtml(s.title, s.artist)}
             </div>
           </li>`
           )

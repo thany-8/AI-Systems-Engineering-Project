@@ -266,6 +266,25 @@ a { color: inherit; text-decoration: none; }
 .track__artist { color: var(--muted); font-size: .86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .track__tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
 .track__tags .tag { font-size: .68rem; padding: 2px 8px; }
+.track__play { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.play__lead { font-size: .68rem; font-weight: 700; letter-spacing: .3px; color: var(--muted-2); text-transform: uppercase; }
+.play {
+  font-size: .72rem; font-weight: 700; letter-spacing: .2px; line-height: 1; text-decoration: none;
+  padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--card-2); color: var(--ink-soft);
+  transition: transform .12s ease, background .14s ease, border-color .14s ease;
+}
+.play:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+.play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.play--spotify { background: rgba(29, 185, 84, .15); border-color: rgba(29, 185, 84, .5); color: #83efac; }
+.play--spotify:hover { background: rgba(29, 185, 84, .26); }
+.play--youtube { background: rgba(255, 0, 0, .13); border-color: rgba(255, 60, 60, .45); color: #ff9d9d; }
+.play--youtube:hover { background: rgba(255, 0, 0, .24); }
+.play--apple { background: rgba(250, 43, 86, .14); border-color: rgba(250, 43, 86, .45); color: #ff9db2; }
+.play--apple:hover { background: rgba(250, 43, 86, .24); }
+.saved .track__play { margin-top: 6px; }
+.saved .play__lead { display: none; }
+.saved .play { font-size: .66rem; padding: 4px 9px; }
 .track__match { text-align: right; flex: none; width: 76px; }
 .match__pct { font-weight: 800; font-size: .9rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 .match__bar { height: 5px; border-radius: 999px; background: var(--card-2); overflow: hidden; margin-top: 5px; }
