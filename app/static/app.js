@@ -168,7 +168,7 @@ function renderPlaylist(data) {
         ${personalNote ? `<p class="pc__personal">${window.escapeHtml(personalNote)}</p>` : ""}
       </div>
     </div>
-    ${data.answer ? `<p class="pc__note">${window.escapeHtml(data.answer)}</p>` : ""}
+    ${data.answer && data.mode === "gemini" ? `<p class="pc__note">${window.escapeHtml(data.answer)}</p>` : ""}
     <div class="refine">
       <span class="refine__label">Intensity</span>
       <div class="seg" role="group" aria-label="Adjust intensity and regenerate">
