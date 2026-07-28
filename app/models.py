@@ -37,6 +37,12 @@ class User(UserMixin, db.Model):
         order_by="Playlist.created_at.desc()",
         lazy=True,
     )
+    feedback = db.relationship(
+        "Feedback",
+        backref="user",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -89,6 +95,37 @@ class Playlist(db.Model):
             "songs": self.songs,
             "created_at": (self.created_at or _utcnow()).isoformat(),
         }
+
+
+class Feedback(db.Model):
+    """A 👍 / 👎 reaction a user gave to a song, used to learn their taste.
+
+    The song's attributes are denormalized here so a taste profile can be built
+    without re-joining the catalog. One row per (user, song).
+    """
+
+    __tablename__ = "feedback"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "title", "artist", name="uq_feedback_user_song"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    title = db.Column(db.String(200), nullable=False)
+    artist = db.Column(db.String(200))
+    genre = db.Column(db.String(80))
+    mood = db.Column(db.String(80))
+    vibe = db.Column(db.String(40))
+    energy = db.Column(db.Float)
+    valence = db.Column(db.Float)
+    signal = db.Column(db.Integer, nullable=False)  # +1 = like, -1 = dislike
+    query = db.Column(db.String(2000))
+    created_at = db.Column(db.DateTime, default=_utcnow)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"title": self.title, "artist": self.artist, "signal": self.signal}
 
 
 @login_manager.user_loader

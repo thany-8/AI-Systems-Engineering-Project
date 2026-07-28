@@ -51,11 +51,21 @@ MAX_INPUT_CHARS = int(os.environ.get("MAX_INPUT_CHARS", "2000"))
 
 # ── Retrieval (RAG) + specialized model ──────────────────────────────────
 RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "5"))
+# Candidate pool retrieved before re-ranking when intensity or personalization is
+# active, so those signals can surface songs beyond the top-K by pure relevance.
+# Trimmed back to RETRIEVAL_TOP_K for display.
+RERANK_POOL_K = int(os.environ.get("RERANK_POOL_K", "12"))
 VIBE_MODEL_PATH = MODEL_DIR / "vibe_model.joblib"
 VIBE_RANDOM_STATE = 42
 # Blend of lexical retrieval score and specialized-model vibe match in ranking.
 RANK_RETRIEVAL_WEIGHT = 0.6
 RANK_VIBE_WEIGHT = 0.4
+# Nuance handling. Intensity (a requested energy level) blends into the score as
+# a renormalized term; a returning user's taste profile applies as a small
+# additive nudge. Both only take effect when an intensity is requested / the user
+# has given feedback, so default ranking behaviour is unchanged.
+RANK_INTENSITY_WEIGHT = 0.35
+RANK_PERSONALIZATION_WEIGHT = 0.2
 
 # ── Semantic embeddings (optional upgrade over TF-IDF) ───────────────────
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "models/text-embedding-004")
