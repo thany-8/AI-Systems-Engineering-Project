@@ -99,6 +99,7 @@ async function renderAuth() {
     /* offline / network error — treat as logged out */
   }
   window.currentUser = user;
+  document.body.classList.toggle("is-authed", Boolean(user));
   document.dispatchEvent(new CustomEvent("auth:ready", { detail: { user } }));
 
   slot.innerHTML = "";

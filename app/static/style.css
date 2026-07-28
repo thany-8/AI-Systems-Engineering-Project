@@ -376,6 +376,9 @@ a { color: inherit; text-decoration: none; }
 .plan li { color: var(--ink-soft); display: flex; gap: 10px; }
 .plan li::before { content: "✓"; color: var(--mint); font-weight: 800; }
 
+/* Shown only to logged-out visitors (no account yet) */
+body.is-authed .auth-anon-only { display: none !important; }
+
 /* ── Footer ─────────────────────────────────────────────── */
 .footer {
   margin-top: 40px; padding: 26px 24px; border-top: 1px solid var(--border);
