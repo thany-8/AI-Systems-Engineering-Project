@@ -4,8 +4,9 @@
 and this app builds a ranked playlist and explains every pick. It **retrieves** matching songs from
 a local catalog (**RAG**), **re-ranks** them with a **trained scikit-learn "vibe" model**, and
 **generates** a grounded explanation — using **Google Gemini** (free tier) when a key is set, or a
-fully local **offline** mode otherwise. Create a free account to **save** playlists and revisit them
-anytime.
+fully local **offline** mode otherwise. Create a free account to **save** playlists, react with
+👍 / 👎 to teach it your taste, and dial in nuance like **intensity** — it learns from your feedback
+to personalize future rankings.
 
 ## Architecture overview
 
@@ -15,8 +16,10 @@ A **Flask** app serves a modern web UI (landing page, account pages, and a saved
 and runs a four-stage **RAG pipeline**: **retrieve** relevant songs (semantic Gemini embeddings, or
 local TF-IDF), **re-rank** them with the trained vibe classifier, **generate** a grounded answer
 (Gemini or an offline template), and **verify** it. User accounts (email + password via Flask-Login)
-and saved playlists persist in a local **SQLite** database. A component + testing view is in
-[`diagrams/system-overview.mmd`](diagrams/system-overview.mmd).
+and saved playlists persist in a local **SQLite** database. Reactions are stored as feedback and
+aggregated into a per-user **taste profile** that nudges ranking, and an **intensity** signal
+(parsed from the query or set explicitly) re-ranks candidates by each song's energy. A component +
+testing view is in [`diagrams/system-overview.mmd`](diagrams/system-overview.mmd).
 
 ## Setup
 
@@ -38,11 +41,22 @@ saved playlists).
 
 | Method & path | Purpose |
 | --- | --- |
-| `POST /api/recommend` | Run the RAG pipeline for a prompt |
+| `POST /api/recommend` | Run the RAG pipeline for a prompt (optional `intensity`: `low`/`medium`/`high` or `0`–`1`) |
 | `POST /api/auth/signup` · `login` · `logout`, `GET /api/auth/me` | Manage the account session |
 | `GET` / `POST /api/playlists`, `DELETE /api/playlists/<id>` | List, save, and delete your playlists |
+| `POST` / `GET /api/feedback` | React 👍 / 👎 to a song (a repeat click toggles it off); list reactions |
+| `GET /api/profile` | Your aggregated taste profile |
 
 Passwords are stored only as salted Werkzeug hashes, and login sessions are signed with `SECRET_KEY`.
+
+### Personalization
+
+- **React to results** — 👍 / 👎 on any track; a repeat click clears it, the opposite flips it.
+- **Taste profile** — reactions aggregate into preferred vibes, genres, artists, and intensity,
+  shown on your library and used to nudge future rankings (an `✨ Personalized` badge appears when
+  it's applied).
+- **Intensity nuance** — phrases like "high-energy", "mellow", or "not too intense" set a target
+  energy, plus a Low / Medium / High control to re-run on demand.
 
 ## Sample interaction
 
@@ -65,13 +79,17 @@ Passwords are stored only as salted Werkzeug hashes, and login sessions are sign
   always runs and stays testable without one.
 - **Grounding guardrail** — invented song titles are detected and replaced, keeping answers
   faithful to the data.
+- **Personalization as a bounded nudge** — 👍/👎 feedback and a requested intensity layer onto the
+  retrieval + vibe score rather than replacing it, so results stay relevant while adapting to taste;
+  default ranking is unchanged when there's no feedback or intensity.
 
 ## Testing
 
 `pytest` runs deterministically offline and covers retrieval relevance, the vibe model (training,
 prediction, cross-validation ≈ 0.70), the embedding retriever, re-rank integration, output
-grounding, the HTTP API, and the account + saved-playlist flows (signup/login, password hashing,
-and per-user playlist isolation). At runtime, the grounding guardrail additionally checks every
+grounding, the HTTP API, the account + saved-playlist flows (signup/login, password hashing,
+per-user isolation), and personalization (intensity detection, taste-profile aggregation, reaction
+toggles, and their ranking effects). At runtime, the grounding guardrail additionally checks every
 generated answer for hallucinated songs before it reaches the user.
 
 ## Reflection
