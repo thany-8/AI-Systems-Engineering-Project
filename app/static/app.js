@@ -55,11 +55,27 @@ document.querySelectorAll(".chip").forEach((chip) =>
   })
 );
 
-// Prefill from a ?q= link (used by the Quick actions menu).
+// Quick actions (nav dropdown): run in-place instead of reloading the page, so a
+// logged-in session and any on-screen results are never disrupted.
+document.querySelectorAll('.dropdown[data-static] .dropdown__menu a').forEach((link) => {
+  link.addEventListener("click", (e) => {
+    const q = new URLSearchParams(link.search).get("q");
+    if (!q) return; // links without a ?q= keep their default behavior
+    e.preventDefault();
+    const dropdown = link.closest(".dropdown");
+    if (dropdown) dropdown.classList.remove("open");
+    promptEl.value = q;
+    autogrow();
+    runGenerate(q);
+  });
+});
+
+// Prefill and run from a shared ?q= link (e.g. opened in a new tab).
 const preset = new URLSearchParams(location.search).get("q");
 if (preset) {
   promptEl.value = preset;
   autogrow();
+  runGenerate(preset);
 }
 
 /* --- generate -------------------------------------------------------- */
