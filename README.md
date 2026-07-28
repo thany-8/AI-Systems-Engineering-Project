@@ -49,12 +49,21 @@ saved playlists).
 
 Passwords are stored only as salted Werkzeug hashes, and login sessions are signed with `SECRET_KEY`.
 
-### Personalization
+### Personalization — learning from your history
 
-- **React to results** — 👍 / 👎 on any track; a repeat click clears it, the opposite flips it.
-- **Taste profile** — reactions aggregate into preferred vibes, genres, artists, and intensity,
-  shown on your library and used to nudge future rankings (an `✨ Personalized` badge appears when
-  it's applied).
+The recommender **learns from each user's history** — both explicit reactions and the playlists
+they save — and biases future rankings toward it, transparently:
+
+- **React to results** — 👍 / 👎 on any track (a repeat click clears it, the opposite flips it).
+- **Learns from history, not just clicks** — a per-user **taste profile** aggregates your reactions
+  *and the songs in your saved playlists* (a weighted implicit signal) into preferred vibes, genres,
+  artists, and intensity. So even without a single 👍, saving playlists personalizes your results.
+- **Visible evidence** — recommendations show an `✨ Personalized from your history — N reactions and
+  M saved playlists` line, each biased track shows **why** ("✨ you like Voltline", "matches your
+  upbeat taste"), and `/api/recommend` returns a `personalization` summary plus a `personal_why`
+  and `personal_score` per song. Your taste profile is shown on the library page.
+- **Bounded nudge** — the taste score layers onto retrieval + vibe rather than replacing it, so
+  results stay relevant; ranking is unchanged when there's no history.
 - **Intensity nuance** — phrases like "high-energy", "mellow", or "not too intense" set a target
   energy, plus a Low / Medium / High control to re-run on demand.
 
@@ -79,9 +88,10 @@ Passwords are stored only as salted Werkzeug hashes, and login sessions are sign
   always runs and stays testable without one.
 - **Grounding guardrail** — invented song titles are detected and replaced, keeping answers
   faithful to the data.
-- **Personalization as a bounded nudge** — 👍/👎 feedback and a requested intensity layer onto the
-  retrieval + vibe score rather than replacing it, so results stay relevant while adapting to taste;
-  default ranking is unchanged when there's no feedback or intensity.
+- **Personalization as a bounded nudge** — a user's history (👍/👎 reactions **and** saved playlists)
+  and a requested intensity layer onto the retrieval + vibe score rather than replacing it, so
+  results stay relevant while adapting to taste; each bias is explained per song, and default
+  ranking is unchanged when there's no history or intensity.
 
 ## Testing
 
