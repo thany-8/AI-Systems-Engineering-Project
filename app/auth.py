@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import re
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import User
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -25,6 +25,7 @@ def _clean_email(value: object) -> str:
 
 
 @bp.post("/signup")
+@limiter.limit(lambda: current_app.config["RATELIMIT_AUTH"])
 def signup():
     data = request.get_json(silent=True) or {}
     email = _clean_email(data.get("email"))
@@ -50,6 +51,7 @@ def signup():
 
 
 @bp.post("/login")
+@limiter.limit(lambda: current_app.config["RATELIMIT_AUTH"])
 def login():
     data = request.get_json(silent=True) or {}
     email = _clean_email(data.get("email"))

@@ -49,6 +49,17 @@ DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DB_PATH}")
 # ── Guardrail limits ─────────────────────────────────────────────────────
 MAX_INPUT_CHARS = int(os.environ.get("MAX_INPUT_CHARS", "2000"))
 
+# ── Rate limiting ────────────────────────────────────────────────────────
+# Per-client limits protect the pipeline / LLM endpoint from abuse. The default
+# in-memory storage suits a single process; set RATELIMIT_STORAGE_URI to a Redis
+# URL (e.g. redis://host:6379) to share limits across gunicorn workers.
+RATELIMIT_ENABLED = os.environ.get("RATELIMIT_ENABLED", "1").lower() not in (
+    "0", "false", "no",
+)
+RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+RATELIMIT_RECOMMEND = os.environ.get("RATELIMIT_RECOMMEND", "20 per minute")
+RATELIMIT_AUTH = os.environ.get("RATELIMIT_AUTH", "10 per minute")
+
 # ── Retrieval (RAG) + specialized model ──────────────────────────────────
 RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "5"))
 # Candidate pool retrieved before re-ranking when intensity or personalization is
