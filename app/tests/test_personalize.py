@@ -63,13 +63,13 @@ def test_recommend_unchanged_without_intensity_or_profile():
 
 
 # ── Taste profile logic ────────────────────────────────────────────────────
-def test_build_profile_counts_genres_and_energy():
+def test_build_profile_weights_genres_and_energy():
     profile = personalize.build_profile(
         [_Row("calm", "lofi", "loroom", 0.3, 1), _Row("upbeat", "pop", "x", 0.9, -1)]
     )
     assert profile["likes"] == 1 and profile["dislikes"] == 1
-    assert "lofi" in profile["liked_genres"] and "pop" in profile["disliked_genres"]
-    assert abs(profile["pref_energy"] - 0.3) < 1e-6
+    assert profile["genre"]["lofi"] > 0 and profile["genre"]["pop"] < 0
+    assert abs(profile["pref_energy"] - 0.3) < 1e-6  # only liked energies counted
     assert personalize.has_signal(profile)
 
 
@@ -106,11 +106,37 @@ def test_summary_uses_net_vibe_preference():
     assert liked.isdisjoint(disliked)
 
 
-def test_personalization_flags_and_scores_results():
+def test_saved_playlists_bias_profile_without_reactions():
+    saved = [{"vibe": "melancholy", "genre": "indie", "artist": "Bon Iver", "energy": 0.3}]
+    profile = personalize.build_profile([], saved_songs=saved, saved_playlists=1)
+    assert personalize.has_signal(profile)  # history alone is enough to personalize
+    assert profile["saved_playlists"] == 1 and profile["saved_songs"] == 1
+    assert profile["genre"]["indie"] > 0
+    assert (
+        personalize.score(
+            {"vibe": "melancholy", "genre": "indie", "artist": "Bon Iver"}, profile
+        )
+        > 0
+    )
+
+
+def test_explain_gives_a_reason_up_and_down():
+    profile = personalize.build_profile(
+        [_Row("intense", "rock", "voltline", 0.9, 1), _Row("upbeat", "pop", "x", 0.8, -1)]
+    )
+    up = personalize.explain({"vibe": "intense", "genre": "rock", "artist": "Voltline"}, profile)
+    assert up and up["dir"] == "up"
+    down = personalize.explain({"vibe": "upbeat", "genre": "pop", "artist": "z"}, profile)
+    assert down and down["dir"] == "down"
+    assert personalize.explain({"vibe": "intense"}, personalize.build_profile([])) is None
+
+
+def test_personalization_flags_scores_and_explains_results():
     profile = personalize.build_profile([_Row("intense", "rock", "voltline", 0.9, 1)] * 2)
     out = pipeline.recommend("energetic songs", user_profile=profile)
     assert out["personalized"] is True
     assert any((r.get("personal_score") or 0) > 0 for r in out["results"])
+    assert any(r.get("personal_why") for r in out["results"])  # bias is explained
 
 
 # ── Feedback + profile API ─────────────────────────────────────────────────
@@ -185,6 +211,28 @@ def test_recommend_personalizes_over_http(client):
     client.post("/api/feedback", json=_song())
     body = client.post("/api/recommend", json={"query": "energetic songs"}).get_json()
     assert body["personalized"] is True
+    assert body["personalization"]["reactions"] == 1
+
+
+def test_saved_playlist_alone_personalizes_recommend(client):
+    _signup(client)
+    # Save a playlist (history) with NO 👍/👎 reactions at all.
+    songs = [
+        {"title": "Storm Runner", "artist": "Voltline", "genre": "rock",
+         "vibe": "intense", "energy": 0.9}
+    ]
+    assert client.post(
+        "/api/playlists", json={"title": "Gym", "prompt": "gym", "songs": songs}
+    ).status_code == 201
+
+    body = client.post("/api/recommend", json={"query": "energetic songs"}).get_json()
+    assert body["personalized"] is True
+    assert body["personalization"]["saved_playlists"] == 1
+    assert body["personalization"]["reactions"] == 0
+
+    profile = client.get("/api/profile").get_json()["profile"]
+    assert profile["saved_playlists"] == 1
+    assert any(g["name"] == "rock" for g in profile["top_genres"])
 
 
 def test_recommend_intensity_over_http(client):
