@@ -1,200 +1,260 @@
-# 🎧 Model Card: Music Recommender Simulation
+# Model Card: AI Playlist Generator
 
 ## 1. Model Name
 
-**VibeFlow 1.0**
+**AI Playlist Generator (VibeFlow RAG Playlist Recommender)**
 
-VibeFlow is a small music recommendation system that suggests songs based on a user’s preferred vibe, mood, genre, and musical characteristics.
+This project started as a small content-based music recommender and evolved into a Flask web app that generates grounded playlist suggestions from a local song catalog. The current system combines retrieval, a trained scikit-learn vibe model, optional Gemini generation, and account-based playlist saving.
 
 ---
 
 ## 2. Intended Use
 
-VibeFlow is designed mainly for young adults and other listeners who want to discover songs that match their current mood or preferred musical style.
+The system is designed for learners and casual music listeners who want playlist suggestions based on a mood, activity, or genre described in natural language, such as:
 
-The system generates song recommendations by comparing the user’s taste profile with the features of each song in the catalog. It assumes that the user’s preferences can be represented through features such as favorite genre, preferred mood, energy, tempo, valence, danceability, and acousticness.
+- calm music for studying
+- sad songs for a rainy day
+- upbeat songs for the gym
 
-This project is intended for classroom exploration and learning. It is not a production-level recommendation system and should not be treated as a replacement for real-world platforms such as Spotify, Apple Music, or YouTube Music.
+The app is intended for classroom exploration of applied AI, retrieval-augmented generation, lightweight model training, and reliability guardrails. It is not a production music platform and should not be treated as a replacement for Spotify, Apple Music, YouTube Music, or other large-scale recommender systems.
 
----
+The intended outputs are:
 
-## 3. How the Model Works
-
-VibeFlow uses a content-based recommendation approach.
-
-Each song is described using the following features:
-
-- Genre
-- Mood
-- Energy
-- Tempo
-- Valence
-- Danceability
-- Acousticness
-
-The user profile stores preferred genres and moods, along with target values for the numerical features.
-
-The recommender compares every song with the user profile and calculates a score. Songs receive more points when their genre or mood matches the user’s preferences. They also receive similarity points when their energy, tempo, valence, danceability, and acousticness are close to the user’s target values.
-
-After every song is scored, the system sorts the songs from the highest score to the lowest score and returns the top recommendations.
-
-Compared with the starter logic, I added more musical features, created weighted scoring rules, included support for related genre families, and added written explanations that show why each song was recommended.
+- a ranked list of songs from the local catalog
+- a short explanation of why those songs fit the query
+- a saved playlist for a logged-in user if they choose to store it
 
 ---
 
-## 4. Data
+## 3. System Overview
 
-The current dataset contains **30 songs**.
+The current app is no longer a simple one-step content scorer. It now uses a four-stage pipeline:
 
-The catalog includes several genres, such as:
+1. **Retrieve** relevant songs from the local catalog.
+2. **Re-rank** the retrieved songs using a trained vibe classifier.
+3. **Generate** a grounded response from the ranked results.
+4. **Verify** that the answer cites only songs that were actually retrieved.
 
-- Pop
-- Reggaeton
-- Salsa
-- Dance-pop
-- Alternative pop
-- Indie pop
-- Hip-hop
-- Afrobeats
-- Latin pop
-- Rock-related styles
+The system runs as a Flask web application with:
 
-The dataset also includes moods such as:
+- a landing page for playlist generation
+- signup and login pages
+- a personal library page for saved playlists
+- a local SQLite database for user accounts and saved playlists
 
-- Happy
-- Sad
-- Relaxed
-- Romantic
-- Energetic
-- Confident
-- Emotional
-- Playful
-- Dark
-
-
-I added and organized song data manually in a CSV file. Each song includes categorical and numerical features.
-
-Because the dataset is small, many musical styles are missing or underrepresented. The catalog does not fully represent classical music, jazz, country, regional music, experimental music, or many international genres.
-
-The numerical features also have different levels of variation:
-
-| Feature | Standard deviation | Range | Interpretation |
-|---|---:|---:|---|
-| Acousticness | 0.31 | 0.01–0.93 | Widest spread and most useful for separating songs |
-| Energy | 0.22 | 0.28–0.93 | Strong variation across the catalog |
-| Valence | 0.21 | 0.12–0.96 | Strong variation and useful for mood differences |
-| Tempo | 25.8 | 60–171 BPM | Good variation, but it must be normalized |
-| Danceability | 0.14 | 0.35–0.88 | Narrower range, so it may have less influence |
-
-Acousticness appears to be the most discriminating feature in the current dataset. Danceability is more clustered, so it may not separate songs as strongly.
+This means the project now combines classic software engineering with AI pipeline design rather than only demonstrating recommendation logic in isolation.
 
 ---
 
-## 5. Strengths
+## 4. How the AI Works
 
-VibeFlow works best for users whose preferences are clearly represented in the dataset.
+### Retrieval
 
-For example, it performs reasonably well for users who prefer:
+Each song in the dataset is converted into a natural-language description that includes genre, mood, energy, tempo, valence, danceability, acousticness, and likely listening contexts such as studying, relaxing, or working out.
 
-- Happy pop songs
-- Energetic reggaeton
-- Relaxed acoustic music
-- Danceable music with high valence
-- Calm songs with low energy
+The retriever then matches the user query against those song descriptions using one of two modes:
 
-The scoring system captures several useful patterns. It can distinguish between songs that belong to the same genre but have different energy, tempo, or acousticness.
+- **TF-IDF retrieval** for deterministic, fully local offline behavior
+- **Gemini embeddings** for semantic retrieval when an API key is available
 
-The recommendations often match intuition when a song matches both the user’s preferred genre and mood while also being close to the user’s numerical targets.
+If Gemini embeddings are unavailable or fail, the app falls back to TF-IDF so the system still works.
 
-For example, `Sunrise City` ranked first for a happy pop profile because it matched the preferred genre and mood and was also close to the user’s targets for energy, positivity, tempo, danceability, and acousticness.
+### Re-ranking with a Trained Model
 
-Another strength is that the system provides an explanation for each recommendation. This makes the result easier to understand instead of only showing a score.
+After retrieval, the app uses a trained logistic regression classifier to predict one of four broad vibes for each candidate song:
 
----
+- calm
+- upbeat
+- intense
+- melancholy
 
-## 6. Limitations and Bias
+The model uses numerical song features:
 
-VibeFlow has several limitations:
+- energy
+- tempo
+- valence
+- danceability
+- acousticness
 
-- The dataset contains a small number of songs.
-- Song features were manually labeled and may be subjective.
-- Mood and genre do not always have one correct label.
-- The system may over-prioritize genre because genre receives a large weight.
-- It may ignore good songs from unfamiliar genres even when their mood and numerical features match the user.
-- A single user profile cannot represent every listening situation.
-- A user may prefer different music while studying, exercising, relaxing, driving, or attending a party.
-- The system does not analyze lyrics or language.
-- It does not learn from likes, skips, repeated plays, ratings, or listening history.
-- Songs with missing or inaccurate feature values may receive unfair scores.
-- The recommender may repeatedly suggest similar songs and reduce musical variety.
-- Some genres and moods are underrepresented in the dataset.
-- Related genre families are manually defined, which may introduce additional bias.
-- Danceability has a narrower range in the dataset, so it may contribute less than expected.
-- Tempo uses a different scale from the other features, so incorrect normalization could affect the ranking.
+The final ranking blends:
 
-Because the system depends on manually selected features and weights, the designer’s choices directly influence the recommendations.
+- retrieval relevance: `0.6`
+- vibe-model match: `0.4`
 
----
+This lets the app consider both textual relevance to the user query and how well the song fits the inferred emotional vibe.
 
-## 7. Evaluation
+### Generation
 
-I evaluated the recommender by testing different user profiles and comparing the results with what I expected.
+The app then generates a recommendation summary using:
 
-I tested profiles such as:
+- **Gemini** when a key is configured, or
+- a **deterministic offline template** when no key is available
 
-- Happy and energetic pop
-- Danceable reggaeton
-- Calm and acoustic music
-- Intense rock
-- Chill lofi-style music
+In both modes, the response is constrained to the retrieved songs.
 
-I looked for several things in the results:
+### Guardrails
 
-- Whether the top songs matched the preferred genre
-- Whether the mood matched the user profile
-- Whether the numerical features were close to the target values
-- Whether related genres appeared when appropriate
-- Whether the explanation matched the actual scoring logic
+The app includes two main guardrails:
 
-One important test was checking whether the system could distinguish between intense rock and chill lofi. These profiles have different energy, tempo, mood, and acousticness values, so the recommender should rank them differently.
-
-I also compared the effect of changing feature weights. Increasing the genre weight produced more exact genre matches, but it reduced variety. Including mood and numerical similarity created more balanced recommendations.
-
-One surprising result was that a song from a related genre could rank highly when its mood and numerical features matched the user better than an exact genre match.
-
-The project also includes tests using `pytest` to check the main recommendation behavior.
+- **Input validation** rejects empty or excessively long queries.
+- **Grounding verification** checks whether the generated response mentions any quoted song titles that were not retrieved. If hallucinated titles are detected, the app replaces the answer with a safe offline response built only from known songs.
 
 ---
 
-## 8. Future Work
+## 5. Data
 
-Future versions of VibeFlow could be improved by:
+The current catalog contains **30 songs** stored in a CSV file inherited from the earlier Module 3 recommender.
 
-- Expanding the song catalog
-- Adding more genres, moods, and international music
-- Allowing users to create multiple profiles
-- Creating separate profiles for studying, exercising, relaxing, and partying
-- Learning from likes, dislikes, skips, and repeated plays
-- Adding song language and release year
-- Analyzing lyrics and themes
-- Improving genre-family relationships
-- Normalizing all numerical features more carefully
-- Adding diversity rules so the top results are not too similar
-- Preventing repeated recommendations
-- Showing a detailed score breakdown for every feature
-- Allowing users to adjust the importance of genre, mood, or energy
-- Building a visual interface with Flask or Streamlit
-- Connecting to a real music API
-- Using collaborative filtering in addition to content-based filtering
+Each song includes:
 
-A future version could combine content-based recommendations with user behavior to produce more personalized results.
+- title
+- artist
+- genre
+- mood
+- energy
+- tempo in BPM
+- valence
+- danceability
+- acousticness
+
+The catalog includes genres such as pop, reggaeton, salsa, lofi, jazz, funk, afrobeats, synthwave, rock-related styles, and several pop subgenres. It also includes moods such as happy, sad, relaxed, energetic, intense, focused, playful, romantic, dark, and emotional.
+
+This dataset is still small and manually curated. It remains useful for demonstrating recommendation, retrieval, ranking, and grounding behavior, but it is not large or diverse enough to support broad real-world personalization claims.
 
 ---
 
-## 9. Personal Reflection
+## 6. Strengths
 
-This project helped me understand how a recommender system turns data into predictions. I learned that each song must first be represented through features, and the user must also be represented through a taste profile. The system then compares those values, calculates scores, and ranks the songs.
+The current system has several important strengths compared with the earlier prototype:
 
-One interesting discovery was how much the feature weights affect the final recommendations. A small change in the genre or mood weight can change which songs appear at the top. I also learned that numerical features such as energy, valence, and acousticness can help distinguish between songs that belong to the same genre.
+- It accepts natural-language requests instead of requiring a fixed profile object.
+- It supports both offline operation and optional Gemini-powered semantic retrieval/generation.
+- It includes a trained specialized model that directly changes ranking behavior.
+- It provides explanations instead of only returning scores.
+- It uses a grounding guardrail to reduce hallucinated song recommendations.
+- It stores playlists per user account, which makes the app feel like a complete product rather than only a script.
+- It exposes a trace of pipeline steps, which improves transparency during testing and debugging.
 
-This project changed the way I think about music recommendation apps. Before, recommendations seemed automatic and simple. Now I understand that they depend on data quality, feature selection, scoring decisions, and possible bias. Real music platforms likely use much more complex systems, but this project helped me understand the basic ideas behind them.
+Another strength is reliability under constrained conditions. The system is designed so that it still works without network access or an API key, which made development and automated testing more stable.
+
+---
+
+## 7. Limitations or Biases in the System
+
+This system still has several limitations and potential biases:
+
+- The song catalog is small, so many genres, languages, cultures, and listening contexts are missing or underrepresented.
+- Song features and moods are manually labeled, which introduces human subjectivity.
+- The vibe model collapses many moods into only four broad classes, so nuance is lost.
+- Retrieval depends on synthetic text descriptions written from structured metadata, not from full audio or lyrics.
+- The app may favor songs whose metadata happens to align well with the wording used in the query or corpus descriptions.
+- The ranking blend gives substantial influence to retrieval relevance and the vibe model, so songs outside those patterns may be ignored even if a listener would enjoy them.
+- The system does not learn from user history, likes, skips, repeated plays, or long-term behavior.
+- The app does not analyze lyrics, language, artist background, release year, or broader cultural context.
+- Because the same curated dataset is used throughout the system, any bias in the catalog is amplified by retrieval, ranking, and generation.
+- A grounded answer can still be limited or repetitive even when it is factually faithful to the retrieved songs.
+
+In short, the system is better at being consistent and explainable than at being globally representative or deeply personalized.
+
+---
+
+## 8. Could the AI Be Misused, and How Would We Prevent That?
+
+Yes. The system could be misused in smaller but still important ways.
+
+Possible misuse includes:
+
+- presenting the recommendations as if they were comprehensive or professionally validated
+- over-trusting generated explanations even when the catalog is narrow
+- trying to treat the app like an open-ended music assistant when it only knows the local dataset
+- probing account or playlist endpoints without authentication
+
+Current prevention measures include:
+
+- **Grounding guardrails** so generated answers only cite retrieved songs from the local catalog
+- **Input validation** to reject invalid or oversized requests
+- **Authentication requirements** for accessing and saving playlists
+- **Password hashing** so user passwords are not stored in plain text
+- **Per-user playlist isolation** so users cannot access or delete each other's saved playlists
+- **Offline fallback behavior** so the app does not fail open if an external model is unavailable
+
+Additional future protections could include:
+
+- rate limiting on recommendation and auth endpoints
+- stronger monitoring for repeated failed login attempts
+- more explicit UI warnings that the app is educational and catalog-limited
+- content moderation rules if the prompt surface is expanded beyond music recommendation
+
+---
+
+## 9. Evaluation and Reliability Testing
+
+The project now includes an automated `pytest` suite that runs offline and checks much more than the original prototype.
+
+The tests cover:
+
+- corpus creation from the CSV catalog
+- retrieval relevance for calm and sad queries
+- TF-IDF fallback behavior when Gemini is unavailable
+- embedding retriever ranking behavior
+- vibe-model training, prediction, probability output, and cross-validation reporting
+- vibe detection from natural-language queries
+- full pipeline behavior from retrieval through grounding
+- guardrail handling when a generator hallucinates a fake song title
+- HTTP API behavior for healthy and invalid requests
+- signup, login, logout, and duplicate-account handling
+- password hashing
+- authenticated playlist saving and deletion
+- per-user playlist isolation
+
+At the time of the latest test run, the suite reported **22 passing tests**.
+
+One internal evaluation signal from the trained vibe model is cross-validated accuracy on the 30-song dataset. That metric is useful for checking whether the model learns something meaningful, but it should be interpreted cautiously because the dataset is small.
+
+---
+
+## 10. What Surprised Me While Testing Reliability?
+
+One of the most surprising results was that the reliability work mattered as much as the recommendation logic itself.
+
+In particular, it was surprising that a generator could produce a convincing but fake song title so easily, while the grounding guardrail could still catch that error and force a safer offline answer. That showed me that a fluent response is not automatically a trustworthy one.
+
+Another surprising result was how well the app could remain usable without external AI services. Even when Gemini is unavailable, the offline retriever and template generator still let the full system run and pass tests deterministically. That made the app more reliable than I initially expected.
+
+It was also interesting that a relatively simple logistic regression vibe model could still influence ranking in a noticeable way, even though the dataset is small and the overall architecture is much simpler than a commercial recommendation system.
+
+---
+
+## 11. Collaboration With AI During the Project
+
+AI was used as a development partner for brainstorming, structuring code, refining prompts, and checking edge cases, but not as a source of truth that could be accepted without review.
+
+One helpful AI suggestion was to separate the recommendation flow into clear stages: retrieval, re-ranking, generation, and verification. That suggestion improved the system architecture because each step became easier to test, debug, and explain. It also directly supported features that now exist in the codebase, such as the pipeline trace and the grounding guardrail fallback.
+
+One flawed AI suggestion was the tendency to assume that a generated recommendation would be reliable if the prompt simply told the model not to invent songs. In practice, prompt instructions alone were not enough. That idea was incomplete, because the system still needed explicit verification logic to detect hallucinated song titles and replace unsafe output. This was a useful reminder that AI suggestions can be directionally helpful while still being technically insufficient.
+
+Overall, the collaboration worked best when AI was used to accelerate implementation ideas and surface options, while final design choices were validated through tests and manual review.
+
+---
+
+## 12. Future Work
+
+Future versions of the system could improve by:
+
+- expanding the catalog far beyond 30 songs
+- adding more genres, languages, and international music
+- incorporating user feedback signals such as likes, skips, and repeat plays
+- improving diversity so recommendations are not too similar to one another
+- adding rate limiting and stronger security hardening
+- improving explainability with per-feature score breakdowns
+- evaluating fairness and genre coverage more systematically
+- adding richer metadata such as lyrics, release year, and language
+- combining content-based signals with collaborative filtering or sequence models
+
+---
+
+## 13. Reflection
+
+This project changed from a straightforward content-based recommender into a more complete AI application. The most important lesson was that building an AI feature is not only about getting an answer; it is about making the answer reproducible, bounded by data, testable, and safe enough for the intended use.
+
+The project also showed that even a small educational app can benefit from core AI engineering ideas: fallback modes, transparent pipeline stages, automated tests, authentication boundaries, and explicit guardrails against hallucination.
