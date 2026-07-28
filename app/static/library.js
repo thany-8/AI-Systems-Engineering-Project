@@ -136,7 +136,7 @@ async function loadTaste() {
 
 function tasteTags(items) {
   return `<div class="taste__vals">${items
-    .map((i) => `<span class="tag">${esc(i.name)}${i.count > 1 ? ` ×${i.count}` : ""}</span>`)
+    .map((i) => `<span class="tag">${esc(i.name)}</span>`)
     .join("")}</div>`;
 }
 
@@ -162,7 +162,11 @@ function renderTaste(p) {
       <div class="taste__head">
         <span aria-hidden="true" style="font-size:1.3rem">✨</span>
         <h2>Your taste profile</h2>
-        <span class="taste__counts">${p.likes} 👍 · ${p.dislikes} 👎 · learned from your reactions</span>
+        <span class="taste__counts">${p.likes} 👍 · ${p.dislikes} 👎${
+          p.saved_playlists
+            ? ` · ${p.saved_playlists} saved playlist${p.saved_playlists === 1 ? "" : "s"}`
+            : ""
+        } · learned from your history</span>
       </div>
       <div class="taste__rows">${rowsHtml}</div>
     </div>`;

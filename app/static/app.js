@@ -126,6 +126,14 @@ function renderPlaylist(data) {
   const cover = VIBE_ART[vibe] || "🎵";
   const title = titleFor(data.query);
   const intensity = data.desired_intensity ? data.desired_intensity.label : null;
+  const pz = data.personalization || {};
+  const personalNote = data.personalized
+    ? `✨ Personalized from your history — ${pz.reactions} reaction${pz.reactions === 1 ? "" : "s"}${
+        pz.saved_playlists
+          ? ` and ${pz.saved_playlists} saved playlist${pz.saved_playlists === 1 ? "" : "s"}`
+          : ""
+      }`
+    : "";
 
   const card = document.createElement("div");
   card.className = "playlist-card";
@@ -141,6 +149,7 @@ function renderPlaylist(data) {
           ${data.personalized ? `<span class="tag tag--personal">✨ Personalized for you</span>` : ""}
           <span class="tag tag--mode">${data.mode === "gemini" ? "Gemini reasoning" : "Offline engine"}</span>
         </div>
+        ${personalNote ? `<p class="pc__personal">${window.escapeHtml(personalNote)}</p>` : ""}
       </div>
     </div>
     ${data.answer ? `<p class="pc__note">${window.escapeHtml(data.answer)}</p>` : ""}
@@ -186,6 +195,11 @@ function renderTrack(song, index) {
         ${song.genre ? `<span class="tag">${window.escapeHtml(song.genre)}</span>` : ""}
         ${song.mood ? `<span class="tag">${window.escapeHtml(song.mood)}</span>` : ""}
       </div>
+      ${
+        song.personal_why
+          ? `<div class="track__why track__why--${song.personal_why.dir}"><span aria-hidden="true">✨</span> ${window.escapeHtml(song.personal_why.text)}</div>`
+          : ""
+      }
       ${window.playLinksHtml(song.title, song.artist)}
     </div>
     <div class="track__react">
