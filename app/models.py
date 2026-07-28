@@ -121,7 +121,7 @@ class Feedback(db.Model):
     energy = db.Column(db.Float)
     valence = db.Column(db.Float)
     signal = db.Column(db.Integer, nullable=False)  # +1 = like, -1 = dislike
-    query = db.Column(db.String(2000))
+    prompt = db.Column(db.String(2000))  # the query that produced this song
     created_at = db.Column(db.DateTime, default=_utcnow)
 
     def to_dict(self) -> dict[str, Any]:

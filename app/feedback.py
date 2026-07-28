@@ -65,7 +65,7 @@ def add_feedback():
             energy=_num(data.get("energy")),
             valence=_num(data.get("valence")),
             signal=signal,
-            query=(data.get("query") or None),
+            prompt=(data.get("query") or None),
         )
     )
     db.session.commit()
