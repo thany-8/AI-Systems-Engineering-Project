@@ -114,15 +114,28 @@ def summary(profile: dict[str, Any]) -> dict[str, Any]:
     def top(counter: Counter, k: int = 3) -> list[dict[str, Any]]:
         return [{"name": name, "count": count} for name, count in counter.most_common(k)]
 
+    # Net vibe preference so a vibe never appears as both liked and disliked
+    # (e.g. a 👍 and a 👎 on two songs that share the same vibe cancel out).
+    liked_v, disliked_v = profile["liked_vibes"], profile["disliked_vibes"]
+    net = {v: liked_v.get(v, 0) - disliked_v.get(v, 0) for v in set(liked_v) | set(disliked_v)}
+    top_vibes = [
+        {"name": v, "count": liked_v[v]}
+        for v in sorted((v for v in net if net[v] > 0), key=lambda v: -net[v])[:3]
+    ]
+    not_for_you = [
+        {"name": v, "count": disliked_v[v]}
+        for v in sorted((v for v in net if net[v] < 0), key=lambda v: net[v])[:3]
+    ]
+
     pref_energy = profile.get("pref_energy")
     return {
         "n": profile["n"],
         "likes": profile["likes"],
         "dislikes": profile["dislikes"],
-        "top_vibes": top(profile["liked_vibes"]),
+        "top_vibes": top_vibes,
         "top_genres": top(profile["liked_genres"]),
         "top_artists": top(profile["liked_artists"]),
-        "disliked_vibes": top(profile["disliked_vibes"]),
+        "disliked_vibes": not_for_you,
         "intensity": None if pref_energy is None else _intensity_label(pref_energy),
         "pref_energy": None if pref_energy is None else round(pref_energy, 2),
     }
