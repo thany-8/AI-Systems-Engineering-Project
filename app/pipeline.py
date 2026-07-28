@@ -246,8 +246,15 @@ def recommend(
     })
     logger.info("[%s] reranked desired=%s (%s)", req_id, desired, source)
 
-    # 3) GENERATE (grounded)
-    answer = gen.generate(text, ranked)
+    # 3) GENERATE (grounded). On a suspected prompt injection, skip the LLM
+    # entirely and use the deterministic offline template so the untrusted text
+    # never reaches the model.
+    if guardrails.looks_like_injection(text):
+        logger.warning("[%s] suspected prompt injection; using offline generation", req_id)
+        trace.append({"step": "input_guard", "injection_suspected": True})
+        answer = generator.OfflineGenerator().generate(text, ranked)
+    else:
+        answer = gen.generate(text, ranked)
 
     # 4) VERIFY grounding
     offending = guardrails.ungrounded_song_citations(answer, [h["title"] for h in ranked])
