@@ -10,7 +10,11 @@ to personalize future rankings.
 
 ## Architecture overview
 
-![Architecture](assets/architecture.png)
+![AI Playlist Generator architecture — hand-drawn in Excalidraw](assets/architecture.png)
+
+*Hand-drawn in [Excalidraw](https://excalidraw.com) — edit the source at
+[`assets/architecture.excalidraw`](assets/architecture.excalidraw) (or the vector
+[`assets/architecture.svg`](assets/architecture.svg)).*
 
 A **Flask** app serves a modern web UI (landing page, account pages, and a saved-playlist library)
 and runs a four-stage **RAG pipeline**: **retrieve** relevant songs (semantic Gemini embeddings, or
