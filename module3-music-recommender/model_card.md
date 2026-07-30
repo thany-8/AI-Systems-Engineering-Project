@@ -4,7 +4,7 @@
 
 **AI Playlist Generator (VibeFlow RAG Playlist Recommender)**
 
-This project started as a small content-based music recommender and evolved into a Flask web app that generates grounded playlist suggestions from a local song catalog. The current system combines retrieval, a trained scikit-learn vibe model, optional Gemini generation, and account-based playlist saving.
+This project started as a small content-based music recommender and evolved into a Flask web app that generates grounded playlist suggestions from a local song catalog. The current system combines retrieval, a trained scikit-learn vibe model, optional Gemini generation, account-based playlist saving, personalization from user feedback, and reliability hardening (rate limiting, prompt-injection screening, and a Docker / gunicorn deployment path).
 
 ---
 
@@ -40,7 +40,9 @@ The system runs as a Flask web application with:
 - a landing page for playlist generation
 - signup and login pages
 - a personal library page for saved playlists
-- a local SQLite database for user accounts and saved playlists
+- a local SQLite database for user accounts, saved playlists, and reactions
+- 👍 / 👎 reactions and a per-user taste profile that personalizes future rankings
+- an intensity control (Low / Medium / High) and per-song "why it was picked" explanations
 
 This means the project now combines classic software engineering with AI pipeline design rather than only demonstrating recommendation logic in isolation.
 
@@ -76,12 +78,12 @@ The model uses numerical song features:
 - danceability
 - acousticness
 
-The final ranking blends:
-
-- retrieval relevance: `0.6`
-- vibe-model match: `0.4`
-
-This lets the app consider both textual relevance to the user query and how well the song fits the inferred emotional vibe.
+The final ranking blends retrieval relevance (`0.6`) with the vibe-model match (`0.4`). When the user
+requests an **intensity** (e.g. "high-energy", or the Low / Medium / High control), a target song
+energy is folded in and also biases retrieval; and for a signed-in user, a **taste profile** built
+from their 👍 / 👎 reactions and saved playlists applies a small, bounded, per-song nudge (each
+explained in the UI). Both are additive layers, so the default blend is unchanged when there is no
+requested intensity or user history.
 
 ### Generation
 
@@ -134,6 +136,8 @@ The current system has several important strengths compared with the earlier pro
 - It uses a grounding guardrail to reduce hallucinated song recommendations.
 - It stores playlists per user account, which makes the app feel like a complete product rather than only a script.
 - It exposes a trace of pipeline steps, which improves transparency during testing and debugging.
+- It personalizes rankings from a user's own history (reactions + saved playlists) and explains each bias per song.
+- It is hardened for real use: per-client rate limiting, prompt-injection screening, and a Docker / gunicorn deployment path.
 
 Another strength is reliability under constrained conditions. The system is designed so that it still works without network access or an API key, which made development and automated testing more stable.
 
@@ -149,7 +153,8 @@ This system still has several limitations and potential biases:
 - Retrieval depends on synthetic text descriptions written from structured metadata, not from full audio or lyrics.
 - The app may favor songs whose metadata happens to align well with the wording used in the query or corpus descriptions.
 - The ranking blend gives substantial influence to retrieval relevance and the vibe model, so songs outside those patterns may be ignored even if a listener would enjoy them.
-- The system does not learn from user history, likes, skips, repeated plays, or long-term behavior.
+- The system learns from explicit reactions (👍 / 👎) and saved playlists, but not from implicit
+  signals such as skips, repeated plays, listening duration, or long-term cross-session behavior.
 - The app does not analyze lyrics, language, artist background, release year, or broader cultural context.
 - Because the same curated dataset is used throughout the system, any bias in the catalog is amplified by retrieval, ranking, and generation.
 - A grounded answer can still be limited or repetitive even when it is factually faithful to the retrieved songs.
@@ -177,11 +182,12 @@ Current prevention measures include:
 - **Password hashing** so user passwords are not stored in plain text
 - **Per-user playlist isolation** so users cannot access or delete each other's saved playlists
 - **Offline fallback behavior** so the app does not fail open if an external model is unavailable
+- **Rate limiting** on the recommendation and auth endpoints (per client) to curb abuse and brute-force attempts
+- **Prompt-injection screening** that sanitizes the free-text query and, on a suspected attempt, bypasses the LLM for the deterministic offline generator
 
 Additional future protections could include:
 
-- rate limiting on recommendation and auth endpoints
-- stronger monitoring for repeated failed login attempts
+- stronger monitoring and account lockout for repeated failed login attempts
 - more explicit UI warnings that the app is educational and catalog-limited
 - content moderation rules if the prompt surface is expanded beyond music recommendation
 
@@ -206,8 +212,11 @@ The tests cover:
 - password hashing
 - authenticated playlist saving and deletion
 - per-user playlist isolation
+- intensity detection and its effect on ranking
+- taste-profile personalization from reactions and saved playlists, with per-song explanations
+- input sanitization, prompt-injection detection that bypasses the LLM, and rate-limit responses
 
-At the time of the latest test run, the suite reported **22 passing tests**.
+At the time of the latest test run, the suite reported **47 passing tests**.
 
 One internal evaluation signal from the trained vibe model is cross-validated accuracy on the 30-song dataset. That metric is useful for checking whether the model learns something meaningful, but it should be interpreted cautiously because the dataset is small.
 
@@ -243,9 +252,9 @@ Future versions of the system could improve by:
 
 - expanding the catalog far beyond 30 songs
 - adding more genres, languages, and international music
-- incorporating user feedback signals such as likes, skips, and repeat plays
+- extending feedback signals beyond 👍 / 👎 and saved playlists to skips and repeat plays
 - improving diversity so recommendations are not too similar to one another
-- adding rate limiting and stronger security hardening
+- further security hardening such as account lockout and CSRF protection
 - improving explainability with per-feature score breakdowns
 - evaluating fairness and genre coverage more systematically
 - adding richer metadata such as lyrics, release year, and language
