@@ -8,6 +8,13 @@ fully local **offline** mode otherwise. Create a free account to **save** playli
 👍 / 👎 to teach it your taste, and dial in nuance like **intensity** — it learns from your feedback
 to personalize future rankings.
 
+> **Origin (Module 3).** This began as the **Music Recommender** built in Module 3 — a content-based
+> recommender that scored a fixed 30-song catalog by its audio features (energy, tempo, valence,
+> danceability, acousticness) to surface similar tracks from a structured request. It has since grown
+> into the full-stack **AI Playlist Generator** described here. **Why it matters:** it turns a
+> one-shot scoring script into a reliable, testable, account-based product that keeps AI output
+> grounded and explainable — an end-to-end applied-AI system a future employer can actually run.
+
 ## Architecture overview
 
 ![AI Playlist Generator architecture — hand-drawn in Excalidraw](assets/architecture.png)
@@ -93,19 +100,27 @@ they save — and biases future rankings toward it, transparently:
   `aria-haspopup`, `aria-expanded`), full keyboard support (Enter to generate, Escape closes menus),
   visible `:focus-visible` outlines, and a `prefers-reduced-motion` mode that disables animations.
 
-## Sample interaction
+## Sample interactions
 
-> **You:** sad songs for a rainy day
->
-> **Result:** a ranked playlist **card** — each track shows its title, artist, genre/mood tags, a
-> match score, "Play on Spotify / YouTube / Apple Music" links, and 👍 / 👎 to teach your taste:
+> **You:** _sad songs for a rainy day_ → detected vibe **melancholy**
 > - "Someone Like You" — Adele · sad pop · **97% match**
-> - "Lovely" — Billie Eilish & Khalid · sad alternative-pop · **89% match**
-> - "Shallow" — Lady Gaga & Bradley Cooper · emotional pop · **73% match**
->
-> Badges show the detected **melancholy** vibe; a Low / Medium / High **intensity** control re-runs
-> it, and signed-in users get an `✨ Personalized from your history` line with a per-song reason.
-> *(RAG steps: retrieve → re-rank → generate → verify.)*
+> - "Lovely" — Billie Eilish and Khalid · sad alternative-pop · **89%**
+> - "Shallow" — Lady Gaga and Bradley Cooper · emotional pop · **70%**
+
+> **You:** _calm music for studying_ → detected vibe **calm**, **low** intensity
+> - "Spacewalk Thoughts" — Orbit Bloom · chill ambient · **97%**
+> - "Library Rain" — Paper Lanterns · chill lofi · **94%**
+> - "Coffee Shop Stories" — Slow Stereo · relaxed jazz · **91%**
+
+> **You:** _high-energy workout songs_ (Intensity → **High**) → detected vibe **upbeat**
+> - "Blinding Lights" — The Weeknd · energetic synth-pop · **87%**
+> - "Gym Hero" — Max Pulse · intense pop · **87%**
+> - "Happy" — Pharrell Williams · happy pop · **82%**
+
+Each result is a **card**: title, artist, genre/mood tags, a match score, "Play on Spotify / YouTube /
+Apple Music" links, and 👍 / 👎 to teach your taste. Every query runs the same RAG steps
+(retrieve → re-rank → generate → verify); signed-in users also get an `✨ Personalized from your
+history` line with a per-song reason.
 
 ## Design decisions
 
@@ -136,6 +151,16 @@ toggles, and their ranking effects), and hardening (input sanitization, prompt-i
 that bypasses the LLM, and rate-limit 429s). At runtime, the grounding guardrail additionally checks
 every generated answer for hallucinated songs before it reaches the user.
 
+**What didn't work at first (and what I learned).** Several bugs surfaced only when I ran the app the
+way it will actually run. Two gunicorn workers **raced** on `db.create_all()` at boot ("table users
+already exists") — fixed by preloading the app so the schema is created once and disposing each
+worker's DB engine after fork. A `Feedback.query` column silently **shadowed** SQLAlchemy's
+`Model.query` manager and broke feedback saves until it was renamed to `prompt`. And the **intensity**
+control looked like it did nothing, because it only re-ranked the already-retrieved songs — it became
+effective only once it *also biases retrieval*. The through-line: a fluent AI answer isn't
+automatically a trustworthy one (grounding and tests caught more than the model did), and offline
+fallbacks are what keep the system reliable and deterministically testable.
+
 ## Deployment
 
 The dev server (`python run.py`) is for local use only. For production the app ships with a
@@ -164,3 +189,7 @@ trained model, and generation into one reliable pipeline, and how to keep AI out
 testable instead of trusting them blindly. It also taught me how to **collaborate with AI**:
 breaking an open-ended goal into clear decisions, iterating through pivots, and verifying results
 at each step.
+
+The full **responsible-AI reflection** — how I collaborated with AI, one helpful and one flawed AI
+suggestion, and the system's limitations and biases — is in
+[`module3-music-recommender/model_card.md`](module3-music-recommender/model_card.md).
