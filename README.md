@@ -15,6 +15,14 @@ to personalize future rankings.
 > one-shot scoring script into a reliable, testable, account-based product that keeps AI output
 > grounded and explainable — an end-to-end applied-AI system a future employer can actually run.
 
+## Demo
+
+![AI Playlist Generator — demo walkthrough](assets/demo.gif)
+
+*~35-second walkthrough: generate a playlist from a mood, dial **intensity** Low ↔ High to swap the
+songs, sign up, react 👍 / 👎, watch it **personalize** with per-song reasons, then save it to your
+library. (Higher-quality [MP4](assets/demo.mp4).)*
+
 ## Architecture overview
 
 ![AI Playlist Generator architecture — hand-drawn in Excalidraw](assets/architecture.png)
