@@ -139,6 +139,15 @@ def test_personalization_flags_scores_and_explains_results():
     assert any(r.get("personal_why") for r in out["results"])  # bias is explained
 
 
+def test_match_score_stays_within_0_and_1():
+    # A strong taste profile + intensity used to push final_score (the match %
+    # shown in the UI) past 1.0 — e.g. 105%. It must stay clamped to [0, 1].
+    profile = personalize.build_profile([_Row("upbeat", "pop", "The Weeknd", 0.9, 1)] * 5)
+    out = pipeline.recommend("happy upbeat pop songs", intensity="high", user_profile=profile)
+    assert out["personalized"] is True
+    assert all(0.0 <= r["final_score"] <= 1.0 for r in out["results"])
+
+
 # ── Feedback + profile API ─────────────────────────────────────────────────
 @pytest.fixture()
 def client(tmp_path):

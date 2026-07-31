@@ -168,6 +168,7 @@ def _rerank(
 
     max_ret = max(h["retrieval_score"] for h in hits) or 1.0
     personalized = personalize.has_signal(profile)
+    scored: list[tuple[float, dict[str, Any]]] = []
     for h in hits:
         proba = model.predict_proba(h)
         predicted = max(proba, key=proba.get)
@@ -195,8 +196,12 @@ def _rerank(
             if why:
                 h["personal_why"] = why
             score += config.RANK_PERSONALIZATION_WEIGHT * personal
-        h["final_score"] = round(score, 4)
-    ranked = sorted(hits, key=lambda s: s["final_score"], reverse=True)
+        # Rank by the raw blended score, but store/display the match clamped to
+        # [0, 1]: the personalization nudge can push the raw score just past 1.0
+        # (which showed up as e.g. 105% in the UI) or, for disliked songs, below 0.
+        h["final_score"] = round(max(0.0, min(1.0, score)), 4)
+        scored.append((score, h))
+    ranked = [h for _, h in sorted(scored, key=lambda item: item[0], reverse=True)]
     return ranked, desired, source
 
 

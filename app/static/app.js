@@ -197,7 +197,7 @@ function renderPlaylist(data) {
 }
 
 function renderTrack(song, index) {
-  const pct = Math.round((song.final_score || 0) * 100);
+  const pct = Math.max(0, Math.min(100, Math.round((song.final_score || 0) * 100)));
   const art = VIBE_ART[song.vibe] || "🎵";
   const li = document.createElement("li");
   li.className = "track";
